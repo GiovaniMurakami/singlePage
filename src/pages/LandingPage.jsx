@@ -123,7 +123,7 @@ export function LandingPage() {
           {["Instagram", "Mail", "Music", "Camera", "Sparkles"].map((nome, index) => (
             <span
               key={nome}
-              className={["anim-flutuar", "anim-pulso", "anim-brilho", "anim-pular", "anim-flutuar"][index]}
+              className={["anim-flutuar", "anim-pulso", "anim-pular", "anim-girar", "anim-flutuar"][index]}
               style={{
                 display: "inline-flex",
                 padding: 12,

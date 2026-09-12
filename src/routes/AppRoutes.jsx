@@ -28,6 +28,8 @@ export function AppRoutes() {
       <Route path="/app" element={<Protected><DashboardPage /></Protected>} />
       <Route path="/app/:paginaId" element={<Protected><EditorPage /></Protected>} />
       <Route path="/conta" element={<Protected><ContaPage /></Protected>} />
+      {/* Endereço público: singlepage.com.br/{nome-da-pagina} */}
+      <Route path="/:slug" element={<PublicPage />} />
     </Routes>
   );
 }

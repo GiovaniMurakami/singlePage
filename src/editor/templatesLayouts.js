@@ -91,7 +91,7 @@ const PERFIL = [
         estiloBotao: "preenchido",
       }),
       icones([
-        { nome: "Palette", url: "https://", fundo: "#ff2bd6", animacao: "brilho" },
+        { nome: "Palette", url: "https://", fundo: "#ff2bd6", animacao: "pulso" },
         { nome: "Instagram", url: "https://instagram.com", fundo: "#5b21b6", animacao: "flutuar" },
         { nome: "Mail", url: "mailto:mel@email.com", fundo: "#1d1d1f", animacao: "nenhuma" },
       ]),
@@ -211,7 +211,7 @@ const PERFIL = [
       }),
       icones([
         { nome: "Instagram", url: "https://instagram.com", fundo: "#ff3b00", animacao: "pular" },
-        { nome: "Youtube", url: "https://youtube.com", fundo: "#155eff", animacao: "brilho" },
+        { nome: "Youtube", url: "https://youtube.com", fundo: "#155eff", animacao: "pulso" },
         { nome: "Music", url: "https://spotify.com", fundo: "#b8ff00", cor: "#111", animacao: "flutuar" },
         { nome: "Mail", url: "mailto:kika@email.com", fundo: "#7c3aed", animacao: "pulso" },
       ]),
@@ -654,7 +654,7 @@ const PORTFOLIO = [
         novaAba: false,
       }),
       icones([
-        { nome: "Camera", url: "https://instagram.com", fundo: "#ff4d00", animacao: "brilho" },
+        { nome: "Camera", url: "https://instagram.com", fundo: "#ff4d00", animacao: "pulso" },
         { nome: "Image", url: "https://", fundo: "#155eff", animacao: "nenhuma" },
         { nome: "Mail", url: "mailto:estudio@email.com", fundo: "#424245", animacao: "pulso" },
       ]),
@@ -843,7 +843,7 @@ const LINKS = [
         estiloBotao: "preenchido",
       }),
       icones([
-        { nome: "Youtube", url: "https://youtube.com", fundo: "#155eff", animacao: "brilho" },
+        { nome: "Youtube", url: "https://youtube.com", fundo: "#155eff", animacao: "pulso" },
         { nome: "Instagram", url: "https://instagram.com", fundo: "#1d1d1f", animacao: "flutuar" },
         { nome: "Music", url: "https://spotify.com", fundo: "#b8ff00", cor: "#111", animacao: "pular" },
         { nome: "Podcast", url: "https://", fundo: "#7c3aed", animacao: "pulso" },

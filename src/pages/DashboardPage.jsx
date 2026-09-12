@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { criarPagina, excluirPagina, listarPaginas, mensagemErro } from "../services/backendApi";
 import { CATEGORIAS, TEMPLATES, slugify } from "../editor/templates";
 import { temRascunho } from "../editor/rascunho";
+import { getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
 
 export function DashboardPage() {
   const { usuario } = useAuth();
@@ -88,11 +89,15 @@ export function DashboardPage() {
             <article key={pagina.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-paper-2 px-5 py-4">
               <div>
                 <Link to={`/app/${pagina.id}`} className="font-medium">{pagina.titulo}</Link>
-                <p className="text-sm text-muted">/{pagina.slug} · {pagina.publicada ? "Publicada" : "Rascunho"}</p>
+                <p className="text-sm text-muted">
+                  {getSiteBaseUrl().replace(/^https?:\/\//, "")}/{pagina.slug} · {pagina.publicada ? "Publicada" : "Rascunho"}
+                </p>
               </div>
               <div className="flex gap-3 text-sm">
                 <Link to={`/app/${pagina.id}`} className="text-accent">Editar</Link>
-                {pagina.publicada && <Link to={`/p/${pagina.slug}`} target="_blank">Ver</Link>}
+                {pagina.publicada && (
+                  <a href={urlPublicaPagina(pagina.slug)} target="_blank" rel="noreferrer">Ver</a>
+                )}
                 <button type="button" className="text-danger" onClick={() => excluir.mutate(pagina.id)}>Excluir</button>
               </div>
             </article>

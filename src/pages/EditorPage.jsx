@@ -1,29 +1,40 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { atualizarPagina, buscarPagina, mensagemErro, publicarPagina, uploadImagem } from "../services/backendApi";
 import { useToast } from "../context/ToastContext";
 import { EditorShell } from "../editor/EditorShell";
-import { aplicarImagemNoBloco } from "../editor/templates";
+import { aplicarImagemNoBloco, slugify } from "../editor/templates";
 import { substituirBloco } from "../editor/blocosArvore";
+import { enderecoReservado, getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
 
 export function EditorPage() {
   const { paginaId } = useParams();
   const { addToast } = useToast();
   const consulta = useQuery({ queryKey: ["pagina", paginaId], queryFn: () => buscarPagina(paginaId) });
   const [pagina, setPagina] = useState(null);
+  const enderecoManual = useRef(false);
 
   useEffect(() => {
-    if (consulta.data) setPagina(consulta.data);
+    if (consulta.data) {
+      setPagina(consulta.data);
+      enderecoManual.current = false;
+    }
   }, [consulta.data]);
 
   const salvar = useMutation({
-    mutationFn: () => atualizarPagina(paginaId, {
-      titulo: pagina.titulo,
-      slug: pagina.slug,
-      tema: pagina.tema,
-      blocos: pagina.blocos,
-    }),
+    mutationFn: () => {
+      const endereco = slugify(pagina.slug || pagina.titulo);
+      if (enderecoReservado(endereco)) {
+        throw new Error("Este endereço é reservado. Escolha outro nome.");
+      }
+      return atualizarPagina(paginaId, {
+        titulo: pagina.titulo,
+        slug: endereco,
+        tema: pagina.tema,
+        blocos: pagina.blocos,
+      });
+    },
     onSuccess: (data) => {
       setPagina(data);
       addToast("Página salva.");
@@ -63,26 +74,52 @@ export function EditorPage() {
 
   if (!pagina) return <div className="p-8 text-sm text-muted">Carregando editor…</div>;
 
+  const endereco = slugify(pagina.slug || pagina.titulo);
+  const linkPublico = urlPublicaPagina(endereco);
+  const base = getSiteBaseUrl().replace(/^https?:\/\//, "");
+
   return (
     <EditorShell
       pagina={pagina}
-      onChange={setPagina}
+      onChange={(proxima) => {
+        setPagina((atual) => {
+          if (!atual) return proxima;
+          if (proxima.titulo !== atual.titulo && !enderecoManual.current) {
+            return { ...proxima, slug: slugify(proxima.titulo) };
+          }
+          return proxima;
+        });
+      }}
       voltarPara="/app"
       voltarLabel="Páginas"
       onEscolherImagem={onEscolherImagem}
       acoes={(
         <>
-          <input
-            className="w-36 rounded-lg border border-line px-2 py-1 text-sm"
-            value={pagina.slug}
-            onChange={(e) => setPagina({ ...pagina, slug: e.target.value })}
-            aria-label="Endereço da página"
-          />
+          <label className="flex min-w-[14rem] flex-col gap-0.5">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-muted">Endereço no domínio</span>
+            <span className="flex items-center gap-0 rounded-lg border border-line bg-paper-2 px-2 py-1 text-sm">
+              <span className="shrink-0 text-muted">{base}/</span>
+              <input
+                className="min-w-0 flex-1 bg-transparent outline-none"
+                value={pagina.slug}
+                onChange={(e) => {
+                  enderecoManual.current = true;
+                  setPagina({ ...pagina, slug: slugify(e.target.value) });
+                }}
+                aria-label="Endereço da página no domínio"
+                placeholder="nome-da-pagina"
+              />
+            </span>
+          </label>
           <button type="button" onClick={() => salvar.mutate()} className="rounded-full border border-line px-4 py-2 text-sm">Salvar</button>
           <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="rounded-full bg-ink px-4 py-2 text-sm text-paper">
             {pagina.publicada ? "Despublicar" : "Publicar"}
           </button>
-          {pagina.publicada && <Link to={`/p/${pagina.slug}`} target="_blank" className="rounded-full px-4 py-2 text-sm text-accent">Ver</Link>}
+          {pagina.publicada && (
+            <a href={linkPublico} target="_blank" rel="noreferrer" className="rounded-full px-4 py-2 text-sm text-accent">
+              Ver
+            </a>
+          )}
         </>
       )}
     />

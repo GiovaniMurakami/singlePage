@@ -422,7 +422,7 @@ export const TEMPLATES = [
       }),
       bloco("icones", {
         itens: [
-          iconePadrao({ nome: "Youtube", url: "https://youtube.com", fundo: "#0071e3", animacao: "brilho" }),
+          iconePadrao({ nome: "Youtube", url: "https://youtube.com", fundo: "#0071e3", animacao: "pulso" }),
           iconePadrao({ nome: "Instagram", url: "https://instagram.com", fundo: "#1d1d1f", animacao: "flutuar" }),
           iconePadrao({ nome: "Music", url: "https://spotify.com", fundo: "#0071e3", animacao: "pular" }),
         ],

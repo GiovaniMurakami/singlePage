@@ -3,7 +3,7 @@ import { ChevronDown, ChevronLeft } from "lucide-react";
 import { DEGRADES_PRONTOS, modoFundo } from "./fundo";
 import { ALIGN_BLOCO, DIRECOES_FLEX, DISPLAYS_BLOCO, JUSTIFY_BLOCO, OBJECT_FIT, RAIOS_BLOCO } from "./aparencia";
 
-export const inputClass = "w-full rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm outline-none focus:border-accent";
+export const inputClass = "w-full rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm text-ink outline-none focus:border-accent";
 
 export function Pills({ valor, opcoes, onChange, className = "", wrap = false }) {
   return (
@@ -14,7 +14,7 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
           type="button"
           className={`inline-flex items-center justify-center gap-1 rounded-full px-3 py-1.5 text-xs ${
             wrap ? "border border-line" : "flex-1"
-          } ${valor === item.id ? "bg-ink text-paper" : "text-muted"}`}
+          } ${valor === item.id ? "bg-ink text-paper" : "ui-dica"}`}
           onClick={() => onChange(item.id)}
         >
           {item.icone}
@@ -28,8 +28,8 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
 export function Campo({ label, dica, children }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-xs uppercase tracking-[0.16em] text-muted">{label}</span>
-      {dica ? <span className="block text-[11px] leading-4 text-muted">{dica}</span> : null}
+      <span className="ui-dica block text-xs uppercase tracking-[0.16em]">{label}</span>
+      {dica ? <span className="ui-dica block text-[11px] leading-4">{dica}</span> : null}
       {children}
     </label>
   );
@@ -40,13 +40,13 @@ export function CabecalhoAjuste({ titulo, dica, voltarPara, onVoltar }) {
   return (
     <div className="mb-3 rounded-2xl bg-paper px-3 py-2.5">
       {voltarPara && onVoltar && (
-        <button type="button" className="mb-1 flex items-center gap-1 text-[11px] text-muted hover:text-ink" onClick={onVoltar}>
+        <button type="button" className="ui-dica mb-1 flex items-center gap-1 text-[11px] hover:text-ink" onClick={onVoltar}>
           <ChevronLeft size={12} />
           {voltarPara}
         </button>
       )}
-      <p className="text-sm font-medium">{titulo}</p>
-      {dica ? <p className="mt-0.5 text-[11px] leading-4 text-muted">{dica}</p> : null}
+      <p className="text-sm font-medium text-ink">{titulo}</p>
+      {dica ? <p className="ui-dica mt-0.5 text-[11px] leading-4">{dica}</p> : null}
     </div>
   );
 }
@@ -56,7 +56,7 @@ export function ListaPartes({ partes, parteAtiva, onEscolher }) {
   if (!partes?.length) return null;
   return (
     <div className="mb-3 space-y-1.5">
-      <p className="text-[11px] leading-4 text-muted">
+      <p className="ui-dica text-[11px] leading-4">
         Passe o mouse na página e clique direto no que quer mudar — ou escolha aqui:
       </p>
       <div className="flex flex-wrap gap-1">
@@ -81,19 +81,19 @@ export function ListaPartes({ partes, parteAtiva, onEscolher }) {
 export function CartaoAjuste({ titulo, resumo, abertoPadrao = true, children }) {
   const [aberto, setAberto] = useState(abertoPadrao);
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-paper-2">
+    <div className="overflow-hidden rounded-2xl border border-line bg-paper-2 text-ink">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
         onClick={() => setAberto((atual) => !atual)}
       >
         <span className="min-w-0">
-          <strong className="block truncate text-sm">{titulo}</strong>
-          {resumo ? <span className="block truncate text-xs text-muted">{resumo}</span> : null}
+          <strong className="block truncate text-sm text-ink">{titulo}</strong>
+          {resumo ? <span className="ui-dica block truncate text-xs">{resumo}</span> : null}
         </span>
-        <ChevronDown size={16} className={`shrink-0 text-muted transition ${aberto ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className={`ui-dica shrink-0 transition ${aberto ? "rotate-180" : ""}`} />
       </button>
-      {aberto && <div className="space-y-3 border-t border-line px-3 py-3">{children}</div>}
+      {aberto && <div className="space-y-3 border-t border-line px-3 py-3 text-ink">{children}</div>}
     </div>
   );
 }

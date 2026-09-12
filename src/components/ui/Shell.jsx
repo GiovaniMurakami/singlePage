@@ -1,5 +1,8 @@
+import { Instagram } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+
+const INSTAGRAM_URL = "https://www.instagram.com/_singlepage/";
 
 function navClass({ isActive }) {
   return `rounded-full px-3 py-2 transition ${isActive ? "text-ink" : "text-ink-soft hover:text-ink"}`;
@@ -9,7 +12,7 @@ export function Shell({ children }) {
   const { autenticado, usuario, logout } = useAuth();
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-line/80 bg-paper-2/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <Link to="/" className="text-lg font-semibold tracking-tight">Single</Link>
@@ -33,7 +36,22 @@ export function Shell({ children }) {
           </nav>
         </div>
       </header>
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
+      <footer className="border-t border-line/80">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 sm:flex-row">
+          <p className="text-sm text-muted">Single — uma página, no ar hoje</p>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-ink-soft transition hover:text-ink"
+            aria-label="Instagram do Single"
+          >
+            <Instagram size={18} strokeWidth={1.75} />
+            @_singlepage
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

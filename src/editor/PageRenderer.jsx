@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical, Plus, Trash2, Undo2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
 import { AnuncioSlot } from "../components/ui/AnuncioSlot";
-import { ESTILOS_BOTAO, TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
-import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloMidia, temaDoBloco, TAMANHOS_BOTAO, TAMANHOS_TEXTO, TAMANHOS_TITULO } from "./aparencia";
+import { TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
+import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloMidia, temaDoBloco } from "./aparencia";
+import { CampoFundo, CamposEspaco, CamposLayout, CartaoAjuste, perfilLayout } from "./ajustesUI";
+import { InspetorParte } from "./Inspector";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
@@ -78,69 +80,52 @@ function BotaoExcluirHold({ onConfirmar, rotulo = "Excluir" }) {
 
 const semMarca = (_parteId, node) => node;
 
-function opcoesRapidasDaParte(bloco, parteId) {
-  if (!bloco || !parteId) return null;
-  if (parteId === "titulo" || (bloco.tipo === "texto" && parteId === "titulo")) {
-    return { chave: "tamanhoTitulo", rotulo: "Tamanho", opcoes: TAMANHOS_TITULO.filter((o) => o.id) };
-  }
-  if (parteId === "subtitulo" || parteId === "corpo" || parteId === "legenda") {
-    return { chave: "tamanhoTexto", rotulo: "Tamanho", opcoes: TAMANHOS_TEXTO.filter((o) => o.id) };
-  }
-  if (parteId === "botao" && bloco.tipo === "capa") {
-    return [
-      { chave: "tamanhoBotao", rotulo: "Tamanho", opcoes: TAMANHOS_BOTAO.filter((o) => o.id) },
-      { chave: "estiloBotao", rotulo: "Estilo", opcoes: ESTILOS_BOTAO },
-    ];
-  }
-  if (bloco.tipo === "botoes" && parteId.startsWith("item-")) {
-    return { chave: "estilo", rotulo: "Estilo", opcoes: ESTILOS_BOTAO, item: true };
-  }
-  return null;
-}
-
-function PopoverRapido({ bloco, parteId, onAtualizar }) {
-  const cfg = opcoesRapidasDaParte(bloco, parteId);
-  if (!cfg || !onAtualizar) return null;
-  const grupos = Array.isArray(cfg) ? cfg : [cfg];
-  const indice = parteId.startsWith("item-") ? Number(parteId.split("-")[1]) : null;
-
-  const valorDe = (chave, item) => {
-    if (item) return bloco.props.itens?.[indice]?.[chave] || "";
-    return bloco.props[chave] || "";
-  };
-
-  const gravar = (chave, valor, item) => {
-    if (item) {
-      const itens = (bloco.props.itens || []).map((atual, i) => (i === indice ? { ...atual, [chave]: valor } : atual));
-      onAtualizar({ ...bloco, props: { ...bloco.props, itens } });
-      return;
-    }
-    onAtualizar({ ...bloco, props: { ...bloco.props, [chave]: valor } });
-  };
+function PopoverRapido({ bloco, parte, tema, onAtualizar, onEscolherImagem, onFechar }) {
+  if (!bloco || !parte || !onAtualizar) return null;
+  const set = (props) => onAtualizar({ ...bloco, props: { ...bloco.props, ...props } });
+  const layout = perfilLayout(bloco.tipo);
 
   return (
     <div className="parte-popover" data-editor-chrome onClick={(e) => e.stopPropagation()}>
       <div className="parte-popover-caixa">
-        {grupos.map((grupo) => (
-          <div key={grupo.chave} className="parte-popover-grupo">
-            <span className="parte-popover-rotulo">{grupo.rotulo}</span>
-            <div className="parte-popover-pills">
-              {grupo.opcoes.map((opcao) => {
-                const ativo = valorDe(grupo.chave, grupo.item) === opcao.id;
-                return (
-                  <button
-                    key={opcao.id}
-                    type="button"
-                    className={ativo ? "ativo" : ""}
-                    onClick={() => gravar(grupo.chave, opcao.id, grupo.item)}
-                  >
-                    {opcao.nome}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <div className="parte-popover-topo">
+          <p className="parte-popover-titulo">{parte.nome}</p>
+          <button
+            type="button"
+            className="parte-popover-fechar"
+            aria-label="Fechar ajustes"
+            title="Fechar"
+            onClick={(evento) => {
+              evento.stopPropagation();
+              onFechar?.();
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        <div className="parte-popover-corpo">
+          <InspetorParte
+            bloco={bloco}
+            parte={parte}
+            tema={tema}
+            set={set}
+            onEscolherImagem={onEscolherImagem}
+          />
+          <CartaoAjuste titulo="Fundo" resumo="Cor, degradê ou imagem" abertoPadrao={false}>
+            <CampoFundo
+              fonte={bloco.props}
+              fallbackCor={tema?.fundo || "#ffffff"}
+              onChange={set}
+              onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, "fundoImagem") : undefined}
+            />
+          </CartaoAjuste>
+          <CartaoAjuste titulo={layout.titulo || "Layout e cantos"} abertoPadrao={false}>
+            <CamposLayout props={bloco.props} onChange={set} midia={layout.midia} altura={layout.altura} />
+          </CartaoAjuste>
+          <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
+            <CamposEspaco props={bloco.props} onChange={set} />
+          </CartaoAjuste>
+        </div>
       </div>
     </div>
   );
@@ -150,19 +135,23 @@ function Parte({
   bloco,
   parte,
   ativo,
+  tema,
   onSelect,
   onRemover,
   onAtualizar,
+  onEscolherImagem,
   className = "",
   children,
 }) {
   const alvo = idParte(bloco.id, parte.id);
   const [hover, setHover] = useState(false);
+  const [fechado, setFechado] = useState(false);
   const timer = useRef(0);
-  const temPopover = Boolean(opcoesRapidasDaParte(bloco, parte.id) && onAtualizar);
+  const mostrarPopover = onAtualizar && !fechado && (hover || ativo);
 
   const entrar = () => {
     clearTimeout(timer.current);
+    setFechado(false);
     setHover(true);
   };
 
@@ -171,7 +160,16 @@ function Parte({
     timer.current = window.setTimeout(() => setHover(false), 220);
   };
 
+  const fecharPopover = () => {
+    clearTimeout(timer.current);
+    setFechado(true);
+    setHover(false);
+  };
+
   useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    if (!ativo) setFechado(false);
+  }, [ativo]);
 
   return (
     <div
@@ -185,11 +183,13 @@ function Parte({
       onMouseLeave={sair}
       onClick={(evento) => {
         evento.stopPropagation();
+        setFechado(false);
         onSelect(alvo);
       }}
       onKeyDown={(evento) => {
         if (evento.key !== "Enter") return;
         evento.stopPropagation();
+        setFechado(false);
         onSelect(alvo);
       }}
     >
@@ -204,9 +204,16 @@ function Parte({
           <BotaoExcluirHold rotulo={parte.nome} onConfirmar={() => onRemover(bloco.id, parte.id)} />
         </div>
       )}
-      {(hover || ativo) && temPopover && (
+      {mostrarPopover && (
         <div onMouseEnter={entrar} onMouseLeave={sair}>
-          <PopoverRapido bloco={bloco} parteId={parte.id} onAtualizar={onAtualizar} />
+          <PopoverRapido
+            bloco={bloco}
+            parte={parte}
+            tema={tema}
+            onAtualizar={onAtualizar}
+            onEscolherImagem={onEscolherImagem}
+            onFechar={fecharPopover}
+          />
         </div>
       )}
       {children}
@@ -225,9 +232,11 @@ function criarMarcador(bloco, selecionadoId, onSelect, extras = {}) {
         bloco={bloco}
         parte={parte}
         ativo={selecionadoId === idParte(bloco.id, parteId)}
+        tema={extras.tema}
         onSelect={onSelect}
         onRemover={extras.onRemoverParte}
         onAtualizar={extras.onAtualizar}
+        onEscolherImagem={extras.onEscolherImagem}
         className={className}
       >
         {node}
@@ -524,11 +533,11 @@ function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
       <div className="my-8">
         {onEnviarImagem ? (
           <label
-            className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-16 text-sm opacity-80 transition hover:opacity-100"
+            className="editor-placeholder flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-16 text-sm transition hover:border-accent/40"
             onClick={(evento) => evento.stopPropagation()}
           >
             <span>Enviar imagem</span>
-            <span className="mt-1 text-xs opacity-60">JPG, PNG, GIF ou WebP</span>
+            <span className="ui-dica mt-1 text-xs">JPG, PNG, GIF ou WebP</span>
             <input
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
@@ -541,7 +550,7 @@ function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
             />
           </label>
         ) : (
-          <div className="rounded-2xl border border-dashed border-line px-6 py-16 text-sm opacity-50">Imagem</div>
+          <div className="editor-placeholder rounded-2xl border border-dashed border-line px-6 py-16 text-sm">Imagem</div>
         )}
       </div>
     );
@@ -800,10 +809,14 @@ function BlocoRedes({ props, marcar = semMarca }) {
 
 function BlocoNavegacao({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
+  const noEditor = marcar !== semMarca;
   return (
     <nav
-      className="sticky top-0 z-10 -mx-6 mb-2 flex flex-wrap justify-center gap-4 px-6 py-4 text-sm backdrop-blur"
+      className={`flex flex-wrap justify-center gap-4 px-6 py-4 text-sm backdrop-blur ${
+        noEditor ? "relative z-0 rounded-xl" : "sticky top-0 z-10 -mx-6 mb-2"
+      }`}
       style={{ background: props.corFundo || `${local.fundo}cc`, color: props.corTexto || undefined }}
+      aria-label="Menu da página"
     >
       {(props.itens || []).map((item, index) => (
         <div key={index} className="contents">
@@ -1059,8 +1072,6 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
     onEscolherImagem,
     onRemover,
     onRemoverParte,
-    onDesfazer,
-    temDesfazer,
     onInserir,
     onAtualizar,
   } = editor || {};
@@ -1072,6 +1083,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
   const parteSelecionada = parteAtiva ? partesDoBloco(bloco).find((item) => item.id === parteAtiva) : null;
   const alvo = arrasto?.sobreId === bloco.id;
   const estrutura = ehTipoEstrutura(bloco.tipo);
+  const ehMenu = bloco.tipo === "navegacao";
   const caixa = useRef(null);
 
   useEffect(() => {
@@ -1197,6 +1209,8 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
       marcar={onSelect ? criarMarcador(bloco, selecionadoId, onSelect, {
         onRemoverParte,
         onAtualizar,
+        onEscolherImagem,
+        tema: local,
       }) : undefined}
       filhos={onSelect ? filhosEditor() : undefined}
       onEnviarImagem={
@@ -1240,12 +1254,14 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
           onSobreArrasto(bloco.id, evento.clientY < ret.top + ret.height / 2 ? "antes" : "depois");
         } : undefined}
         onDrop={onSoltarArrasto ? (evento) => soltarEm(evento, bloco.id) : undefined}
-        className={`bloco-editor group relative w-full rounded-2xl ${estrutura ? "bloco-estrutura" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
+        className={`bloco-editor group relative w-full rounded-2xl ${estrutura ? "bloco-estrutura" : ""} ${ehMenu ? "bloco-editor-menu" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
       >
         {podeArrastar && (
           <div
             data-editor-chrome
-            className={`absolute left-2 top-3 z-10 flex items-center rounded-md text-white transition ${
+            className={`bloco-chrome absolute z-10 flex items-center gap-0.5 rounded-md text-white transition ${
+              ehMenu ? "left-2 top-1.5" : "left-2 top-3"
+            } ${
               ativo
                 ? "bg-[#1d1d1f]"
                 : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:bg-[#1d1d1f]/75 group-hover:opacity-100"
@@ -1254,9 +1270,9 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
             <button
               type="button"
               draggable
-              aria-label="Arrastar bloco"
-              title="Arraste para reordenar"
-              className="cursor-grab p-1 active:cursor-grabbing"
+              aria-label={ehMenu ? "Mover o menu (controle do editor)" : "Arrastar bloco"}
+              title={ehMenu ? "Controle do editor — não faz parte do menu publicado" : "Arraste para reordenar"}
+              className="inline-flex cursor-grab items-center gap-1 px-1.5 py-1 text-[11px] font-medium active:cursor-grabbing"
               onClick={(evento) => evento.stopPropagation()}
               onDragStart={(evento) => {
                 evento.stopPropagation();
@@ -1272,58 +1288,33 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
               }}
             >
               <GripVertical size={14} />
+              <span>{ehMenu ? "Mover menu" : "Mover"}</span>
             </button>
             {ativo && (
               <button
                 type="button"
-                className="pr-2 text-[11px] font-medium"
+                className="border-l border-white/15 px-2 py-1 text-[11px] font-medium"
                 title={parteAtiva ? `Voltar para a ${nomeDoTipo(bloco.tipo).toLowerCase()} inteira` : undefined}
                 onClick={(evento) => {
                   evento.stopPropagation();
                   onSelect(bloco.id);
                 }}
               >
-                {parteSelecionada ? `${nomeDoTipo(bloco.tipo)} › ${parteSelecionada.nome}` : nomeDoTipo(bloco.tipo)}
+                {parteSelecionada
+                  ? `${nomeDoTipo(bloco.tipo)} › ${parteSelecionada.nome}`
+                  : nomeDoTipo(bloco.tipo)}
               </button>
             )}
           </div>
         )}
         {ativo && onRemover && !parteAtiva && (
-          <div data-editor-chrome className="absolute right-2 top-2 z-20 flex items-center gap-1">
-            {temDesfazer && onDesfazer && (
-              <button
-                type="button"
-                aria-label="Desfazer exclusão"
-                className="inline-flex items-center gap-1 rounded-md bg-[#1d1d1f] px-2 py-1.5 text-[11px] font-medium text-white hover:bg-ink-soft"
-                onClick={(evento) => {
-                  evento.stopPropagation();
-                  onDesfazer();
-                }}
-              >
-                <Undo2 size={13} />
-                Desfazer
-              </button>
-            )}
+          <div data-editor-chrome className={`absolute z-20 flex items-center gap-1 ${ehMenu ? "right-2 top-1.5" : "right-2 top-2"}`}>
             <BotaoExcluirHold rotulo={nomeDoTipo(bloco.tipo)} onConfirmar={() => onRemover(bloco.id)} />
           </div>
         )}
-        {ativo && parteAtiva && temDesfazer && onDesfazer && (
-          <div data-editor-chrome className="absolute right-2 top-2 z-20">
-            <button
-              type="button"
-              aria-label="Desfazer exclusão"
-              className="inline-flex items-center gap-1 rounded-md bg-[#1d1d1f] px-2 py-1.5 text-[11px] font-medium text-white hover:bg-ink-soft"
-              onClick={(evento) => {
-                evento.stopPropagation();
-                onDesfazer();
-              }}
-            >
-              <Undo2 size={13} />
-              Desfazer
-            </button>
-          </div>
-        )}
-        {conteudo}
+        <div className={ehMenu ? "bloco-editor-menu-conteudo" : undefined}>
+          {conteudo}
+        </div>
       </div>
       {podeArrastar && alvo && arrasto?.posicao === "depois" && (
         <div className="my-2 h-1 rounded-full bg-accent" />
@@ -1345,8 +1336,6 @@ export function PageRenderer({
   onEscolherImagem,
   onRemover,
   onRemoverParte,
-  onDesfazer,
-  temDesfazer,
   onInserir,
   onAtualizar,
 }) {
@@ -1366,8 +1355,6 @@ export function PageRenderer({
       onEscolherImagem,
       onRemover,
       onRemoverParte,
-      onDesfazer,
-      temDesfazer,
       onInserir,
       onAtualizar,
     }
@@ -1375,7 +1362,7 @@ export function PageRenderer({
 
   return (
     <div
-      className={onSelect ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
+      className={onSelect ? "flex min-h-full w-full flex-1 flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),
@@ -1386,7 +1373,7 @@ export function PageRenderer({
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}
     >
-      <div className="mx-auto w-full px-6 py-10" style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
+      <div className={`mx-auto flex w-full flex-1 flex-col px-6 py-10 ${onSelect && !blocos.length ? "justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
         {onInserir && blocos.length > 0 && (
           <PontoDeInsercao
             permitirEstrutura
@@ -1408,7 +1395,7 @@ export function PageRenderer({
           </div>
         ))}
         {onInserir && !blocos.length && (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex min-h-[18rem] flex-1 items-center justify-center py-16">
             <ZonaVazia
               permitirEstrutura
               dica="Comece por aqui: escolha o que entra na página"

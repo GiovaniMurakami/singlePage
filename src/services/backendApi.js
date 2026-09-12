@@ -19,10 +19,17 @@ export const criarPortal = () => httpClient.post("/assinatura/portal").then((r) 
 
 export async function uploadImagem(file) {
   const { uploadUrl, urlPublica } = await httpClient.post("/imagem/upload-url", {
-    contentType: file.type,
+    contentType: file.type || "image/jpeg",
     tamanhoBytes: file.size,
   }).then((r) => r.data);
-  await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+  const resposta = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type || "image/jpeg" },
+  });
+  if (!resposta.ok) {
+    throw new Error(`Falha no upload da imagem (${resposta.status}).`);
+  }
   return urlPublica;
 }
 

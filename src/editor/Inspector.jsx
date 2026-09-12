@@ -254,7 +254,7 @@ function gravarBotaoDaCapa(props, proximo) {
 }
 
 /** Ajustes de uma parte só: o texto, a foto ou o botão que você clicou na página. */
-function InspetorParte({ bloco, parte, tema, set, onEscolherImagem }) {
+export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem }) {
   const props = bloco.props || {};
   const indice = indiceDaParte(parte.id);
   const chave = `${bloco.tipo}.${indice === null ? parte.id : "item"}`;

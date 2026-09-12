@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Smartphone, Undo2 } from "lucide-react";
+import { Monitor, Plus, Smartphone } from "lucide-react";
 import { Pills } from "./ajustesUI";
 import { PageRenderer } from "./PageRenderer";
 import { Inspector, ThemeInspector } from "./Inspector";
@@ -74,8 +74,8 @@ export function EditorShell({
   const [paleta, setPaleta] = useState("estrutura");
   const [visao, setVisao] = useState("desktop");
   const [arrasto, setArrasto] = useState(null);
-  const [desfazer, setDesfazer] = useState(null);
   const [guiaAberta, setGuiaAberta] = useState(() => window.localStorage.getItem("single.guia-editor") !== "oculto");
+  const historicoRef = useRef([]);
 
   const { blocoId: alvoId, parteId } = separarAlvo(selecionadoId);
   const alvo = useMemo(() => contextoDoAlvo(pagina.blocos, alvoId), [pagina.blocos, alvoId]);
@@ -88,22 +88,31 @@ export function EditorShell({
   const passoAtivo = !selecionadoId ? 1 : parteId ? 3 : 2;
   const celular = visao === "celular";
 
+  const registrarHistorico = () => {
+    historicoRef.current.push({
+      blocos: pagina.blocos,
+      selecionadoId,
+    });
+    if (historicoRef.current.length > 50) historicoRef.current.shift();
+  };
+
+  const desfazerAcao = () => {
+    const anterior = historicoRef.current.pop();
+    if (!anterior) return;
+    onChange({ ...pagina, blocos: anterior.blocos });
+    setSelecionadoId(anterior.selecionadoId ?? null);
+  };
+
   const removerSelecionado = (id) => {
-    setDesfazer({ blocos: pagina.blocos, selecionadoId: id });
+    registrarHistorico();
     gravar(removerBloco(pagina.blocos, id), null);
   };
 
   const removerParte = (blocoId, idDaParte) => {
     const ctx = contextoDoAlvo(pagina.blocos, blocoId);
     if (ctx?.kind !== "bloco") return;
-    setDesfazer({ blocos: pagina.blocos, selecionadoId: blocoId });
+    registrarHistorico();
     gravar(substituirBloco(pagina.blocos, removerParteDoBloco(ctx.bloco, idDaParte)), blocoId);
-  };
-
-  const desfazerRemocao = () => {
-    if (!desfazer) return;
-    gravar(desfazer.blocos, desfazer.selecionadoId);
-    setDesfazer(null);
   };
 
   const gravar = (blocos, id = selecionadoId) => {
@@ -119,12 +128,14 @@ export function EditorShell({
   const adicionarPeca = (tipo) => {
     const novo = blocoPadrao(tipo);
     const destino = destinoDaInsercao(pagina.blocos, alvoId, tipo);
+    registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
   };
 
   const inserirEm = (tipo, destino) => {
     const novo = blocoPadrao(tipo);
+    registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
   };
@@ -133,6 +144,7 @@ export function EditorShell({
     const dados = dadosEvento?.kind ? dadosEvento : arrasto;
     setArrasto(null);
     if (!dados) return;
+    registrarHistorico();
     if (dados.kind === "bloco") {
       if (extra?.celulaId) {
         gravar(moverParaCelula(pagina.blocos, dados.id, extra.celulaId), dados.id);
@@ -175,9 +187,10 @@ export function EditorShell({
       const digitando = foco?.isContentEditable
         || ["INPUT", "TEXTAREA", "SELECT"].includes(foco?.tagName);
       if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === "z") {
-        if (!desfazer) return;
+        if (digitando) return;
+        if (!historicoRef.current.length) return;
         evento.preventDefault();
-        desfazerRemocao();
+        desfazerAcao();
         return;
       }
       if (digitando) return;
@@ -196,7 +209,7 @@ export function EditorShell({
   });
 
   return (
-    <div className="grid min-h-screen grid-rows-[auto_auto_1fr] bg-paper">
+    <div className="grid min-h-screen grid-rows-[auto_auto_minmax(0,1fr)] bg-paper">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/80 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <Link to={voltarPara} className="text-sm text-muted">{voltarLabel}</Link>
@@ -236,7 +249,7 @@ export function EditorShell({
         />
       )}
 
-      <div className="grid min-h-0 lg:grid-cols-[16.5rem_1fr_20rem]">
+      <div className="grid h-full min-h-0 lg:grid-cols-[16.5rem_minmax(0,1fr)_20rem]">
         <aside className="overflow-auto border-r border-line p-4">
           <Pills
             valor={paleta}
@@ -295,7 +308,7 @@ export function EditorShell({
         </aside>
 
         <section
-          className="overflow-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6"
+          className="flex min-h-full flex-col overflow-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -313,7 +326,7 @@ export function EditorShell({
 
           {celular ? (
             <div className="relative mx-auto w-[360px]">
-              <div className="rounded-[2.4rem] p-[10px] shadow-xl ring-1 ring-black/10" style={cssFundo(pagina.tema || {})}>
+              <div className="rounded-[2.4rem] p-[10px] ring-1 ring-black/10" style={cssFundo(pagina.tema || {})}>
                 <div className="preview-celular h-[680px] overflow-auto rounded-[1.9rem]" style={cssFundo(pagina.tema || {})}>
                   <PageRenderer
                     pagina={pagina}
@@ -324,24 +337,13 @@ export function EditorShell({
                     onRemoverParte={removerParte}
                     onInserir={inserirEm}
                     onAtualizar={atualizarBloco}
-                    onDesfazer={desfazerRemocao}
-                    temDesfazer={Boolean(desfazer)}
                   />
                 </div>
               </div>
-              {desfazer && !selecionadoId && (
-                <button
-                  type="button"
-                  className="absolute right-5 top-5 z-30 inline-flex items-center gap-1 rounded-md bg-[#1d1d1f] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg"
-                  onClick={desfazerRemocao}
-                >
-                  <Undo2 size={13} /> Desfazer
-                </button>
-              )}
             </div>
           ) : (
-            <div className="relative mx-auto w-full max-w-3xl">
-              <div className="overflow-hidden rounded-[2rem] border border-line shadow-xl">
+            <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col">
+              <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[2rem] border border-line">
                 <PageRenderer
                   pagina={pagina}
                   selecionadoId={selecionadoId}
@@ -357,19 +359,8 @@ export function EditorShell({
                   onRemoverParte={removerParte}
                   onInserir={inserirEm}
                   onAtualizar={atualizarBloco}
-                  onDesfazer={desfazerRemocao}
-                  temDesfazer={Boolean(desfazer)}
                 />
               </div>
-              {desfazer && !selecionadoId && (
-                <button
-                  type="button"
-                  className="absolute right-4 top-4 z-30 inline-flex items-center gap-1 rounded-md bg-[#1d1d1f] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg"
-                  onClick={desfazerRemocao}
-                >
-                  <Undo2 size={13} /> Desfazer
-                </button>
-              )}
             </div>
           )}
         </section>

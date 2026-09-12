@@ -1,10 +1,16 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { HelpCircle, X } from "lucide-react";
 import { ASSUNTOS_AJUDA, EMAIL_SUPORTE } from "../../constants/suporte";
 
 const campo = "w-full rounded-2xl border border-line bg-paper px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:shadow-[0_0_0_4px_var(--color-accent-soft)]";
 
+function rotaDoEditor(pathname) {
+  return pathname === "/criar" || /^\/app\/[^/]+$/.test(pathname);
+}
+
 export function HelpButton() {
+  const { pathname } = useLocation();
   const [aberto, setAberto] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [form, setForm] = useState({
@@ -16,6 +22,8 @@ export function HelpButton() {
     aconteceu: "",
     mensagem: "",
   });
+
+  if (rotaDoEditor(pathname)) return null;
 
   const set = (campoNome, valor) => setForm((atual) => ({ ...atual, [campoNome]: valor }));
 
@@ -88,7 +96,7 @@ export function HelpButton() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block text-muted">Página ou slug, se tiver</span>
-                <input className={campo} placeholder="ex.: /p/meu-studio" value={form.pagina} onChange={(e) => set("pagina", e.target.value)} />
+                <input className={campo} placeholder="ex.: meu-studio" value={form.pagina} onChange={(e) => set("pagina", e.target.value)} />
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block text-muted">O que você tentou fazer</span>

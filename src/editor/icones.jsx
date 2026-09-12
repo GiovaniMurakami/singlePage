@@ -6,7 +6,6 @@ export const ANIMACOES_ICONE = [
   { id: "pulso", nome: "Pulso" },
   { id: "girar", nome: "Girar" },
   { id: "pular", nome: "Pular" },
-  { id: "brilho", nome: "Brilho" },
 ];
 
 export const ICONES_CATALOGO = [
@@ -54,6 +53,5 @@ export function classeAnimacaoIcone(animacao) {
   if (animacao === "pulso") return "anim-pulso";
   if (animacao === "girar") return "anim-girar";
   if (animacao === "pular") return "anim-pular";
-  if (animacao === "brilho") return "anim-brilho";
   return "";
 }
