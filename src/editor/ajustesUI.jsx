@@ -149,7 +149,26 @@ export function CamposLayout({ props, onChange }) {
   return (
     <div className="space-y-3">
       <Campo label="Display">
-        <Pills valor={display} opcoes={DISPLAYS_BLOCO} onChange={(valor) => onChange({ display: valor })} />
+        <Pills
+          valor={display}
+          opcoes={DISPLAYS_BLOCO}
+          onChange={(valor) => onChange({
+            display: valor,
+            ...(valor === "flex" ? {
+              flexDirecao: props.flexDirecao || "row",
+              flexQuebra: props.flexQuebra || "wrap",
+              justify: props.justify || "center",
+              align: props.align || "center",
+              gap: definidoNumero(props.gap) ? props.gap : 16,
+            } : {}),
+            ...(valor === "grid" ? {
+              colunasGrade: props.colunasGrade || 2,
+              justify: props.justify || "center",
+              align: props.align || "center",
+              gap: definidoNumero(props.gap) ? props.gap : 16,
+            } : {}),
+          })}
+        />
       </Campo>
       {display === "flex" && (
         <>
@@ -158,7 +177,7 @@ export function CamposLayout({ props, onChange }) {
           </Campo>
           <Campo label="Quebra">
             <Pills
-              valor={props.flexQuebra || "nowrap"}
+              valor={props.flexQuebra || "wrap"}
               opcoes={[{ id: "nowrap", nome: "Não" }, { id: "wrap", nome: "Sim" }]}
               onChange={(flexQuebra) => onChange({ flexQuebra })}
             />

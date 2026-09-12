@@ -217,7 +217,7 @@ function BlocoImagem({ props, onEnviarImagem }) {
   }
   return (
     <figure className="my-8" style={caixaDoBloco(props)}>
-      <img src={props.url} alt={props.alt || ""} className="w-full" style={estiloMidia(props, "1rem")} />
+      <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloMidia(props, "1rem")} />
       {props.caption && (
         <figcaption className={`mt-2 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
           {props.caption}
@@ -230,7 +230,7 @@ function BlocoImagem({ props, onEnviarImagem }) {
 function BlocoBotoes({ props, tema }) {
   const local = temaDoBloco(props, tema);
   return (
-    <div className="flex flex-col gap-3 py-6" style={caixaDoBloco(props)}>
+    <div className={props.display ? "py-6" : "flex flex-col gap-3 py-6"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
         <BotaoPagina key={`${item.rotulo}-${index}`} item={item} tema={local} className="min-h-12 w-full" />
       ))}
@@ -244,18 +244,18 @@ function BlocoGaleria({ props, interativo }) {
   const custom = Boolean(props.display);
   return (
     <>
-      <div className={custom ? "py-8" : "grid gap-3 py-8 sm:grid-cols-2"} style={caixaDoBloco(props)}>
+      <div className={custom ? "w-full py-8" : "grid w-full gap-3 py-8 sm:grid-cols-2"} style={caixaDoBloco(props)}>
         {(urls.length ? urls : ["", "", ""]).map((url, index) => (
           url
             ? (
               <button
                 key={url + index}
                 type="button"
-                className="block overflow-hidden"
+                className="overflow-hidden"
                 style={estiloMidia(props, "1rem")}
                 onClick={() => interativo && setAberta(url)}
               >
-                <img src={url} alt="" className="aspect-square w-full" style={{ objectFit: props.objectFit || "cover" }} />
+                <img src={url} alt="" className="aspect-square w-full" style={{ objectFit: props.objectFit || "cover", display: "block" }} />
               </button>
             )
             : <div key={index} className="aspect-square border border-dashed border-line" style={estiloMidia(props, "1rem")} />
@@ -427,7 +427,7 @@ function BlocoFormulario({ props, tema, interativo }) {
 
 function BlocoRedes({ props }) {
   return (
-    <div className="flex flex-wrap justify-center gap-4 py-6 text-sm" style={caixaDoBloco(props)}>
+    <div className={props.display ? "py-6 text-sm" : "flex flex-wrap justify-center gap-4 py-6 text-sm"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
         <a key={index} href={item.url || "#"} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
           {item.rotulo}
@@ -565,7 +565,7 @@ function BlocoFaixa({ props, tema, interativo, filhos }) {
 
 function BlocoIcones({ props }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 py-6" style={caixaDoBloco(props)}>
+    <div className={props.display ? "py-6" : "flex flex-wrap items-center justify-center gap-3 py-6"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => {
         const lado = (item.tamanho || 22) + (item.padding || 12) * 2;
         const visual = (
@@ -798,7 +798,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
           onSobreArrasto(bloco.id, evento.clientY < ret.top + ret.height / 2 ? "antes" : "depois");
         } : undefined}
         onDrop={onSoltarArrasto ? (evento) => soltarEm(evento, bloco.id) : undefined}
-        className={`bloco-editor group relative rounded-2xl ${estrutura ? "bloco-estrutura" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
+        className={`bloco-editor group relative w-full rounded-2xl ${estrutura ? "bloco-estrutura" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
       >
         {podeArrastar && (
           <div

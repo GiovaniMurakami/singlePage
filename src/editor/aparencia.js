@@ -109,18 +109,37 @@ export function raioCss(props = {}, padrao) {
   return padrao;
 }
 
+function eixoGrade(valor, padrao = "center") {
+  const mapa = {
+    "flex-start": "start",
+    center: "center",
+    "flex-end": "end",
+    "space-between": "stretch",
+    "space-around": "center",
+    stretch: "stretch",
+  };
+  return mapa[valor] || padrao;
+}
+
 export function estiloLayout(props = {}) {
   const estilo = {};
-  if (props.display) estilo.display = props.display;
-  if (props.display === "flex" || props.display === "grid") {
-    if (props.flexDirecao) estilo.flexDirection = props.flexDirecao;
-    if (props.flexQuebra) estilo.flexWrap = props.flexQuebra;
-    if (props.justify) estilo.justifyContent = props.justify;
-    if (props.align) estilo.alignItems = props.align;
-    if (definido(props.gap)) estilo.gap = px(props.gap);
-    if (props.display === "grid") {
-      estilo.gridTemplateColumns = `repeat(${props.colunasGrade || 2}, minmax(0, 1fr))`;
-    }
+  if (props.display) {
+    estilo.display = props.display;
+    estilo.width = "100%";
+    estilo.boxSizing = "border-box";
+  }
+  if (props.display === "flex") {
+    estilo.flexDirection = props.flexDirecao || "row";
+    estilo.flexWrap = props.flexQuebra || "wrap";
+    estilo.justifyContent = props.justify || "center";
+    estilo.alignItems = props.align || "center";
+    estilo.gap = definido(props.gap) ? px(props.gap) : "16px";
+  }
+  if (props.display === "grid") {
+    estilo.gridTemplateColumns = `repeat(${props.colunasGrade || 2}, minmax(0, 1fr))`;
+    estilo.justifyItems = eixoGrade(props.justify, "center");
+    estilo.alignItems = eixoGrade(props.align, "center");
+    estilo.gap = definido(props.gap) ? px(props.gap) : "16px";
   }
   if (definido(props.raio)) estilo.borderRadius = `${Number(props.raio)}px`;
   if (definido(props.minAltura)) estilo.minHeight = px(props.minAltura);
@@ -132,9 +151,16 @@ export function estiloMidia(props = {}, padraoRaio = "1rem") {
   const estilo = {
     borderRadius: raioCss(props, padraoRaio),
     objectFit: props.objectFit || "cover",
+    overflow: "hidden",
+    flex: "0 0 auto",
+    minWidth: 0,
   };
   if (definido(props.itemLargura)) {
-    estilo.maxWidth = px(props.itemLargura);
+    estilo.width = px(props.itemLargura);
+    estilo.maxWidth = "100%";
+  } else if (props.display === "flex") {
+    estilo.width = props.flexDirecao === "column" ? "min(100%, 280px)" : "180px";
+  } else if (props.display === "grid") {
     estilo.width = "100%";
   }
   return estilo;
