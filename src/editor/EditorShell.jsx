@@ -209,8 +209,8 @@ export function EditorShell({
   });
 
   return (
-    <div className="grid min-h-screen grid-rows-[auto_auto_minmax(0,1fr)] bg-paper">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/80 px-4 py-3 backdrop-blur-xl">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-paper">
+      <header className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/80 px-4 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <Link to={voltarPara} className="text-sm text-muted">{voltarLabel}</Link>
           <input
@@ -240,20 +240,23 @@ export function EditorShell({
       </header>
 
       {guiaAberta && (
-        <GuiaEditor
-          passoAtivo={passoAtivo}
-          onFechar={() => {
-            window.localStorage.setItem("single.guia-editor", "oculto");
-            setGuiaAberta(false);
-          }}
-        />
+        <div className="shrink-0">
+          <GuiaEditor
+            passoAtivo={passoAtivo}
+            onFechar={() => {
+              window.localStorage.setItem("single.guia-editor", "oculto");
+              setGuiaAberta(false);
+            }}
+          />
+        </div>
       )}
 
-      <div className="grid h-full min-h-0 lg:grid-cols-[16.5rem_minmax(0,1fr)_20rem]">
-        <aside className="overflow-auto border-r border-line p-4">
+      <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[16.5rem_minmax(0,1fr)_20rem] lg:overflow-hidden">
+        <aside className="min-w-0 border-r border-line p-4 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
           <Pills
             valor={paleta}
             onChange={setPaleta}
+            className="min-w-0"
             opcoes={[
               { id: "estrutura", nome: "Estrutura" },
               { id: "pecas", nome: "Peças" },
@@ -273,7 +276,7 @@ export function EditorShell({
                 key={tipo.tipo}
                 type="button"
                 draggable
-                className="flex min-h-11 w-full cursor-grab items-center gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm hover:bg-paper-2 active:cursor-grabbing"
+                className="flex min-h-11 w-full min-w-0 cursor-grab items-center gap-2 rounded-xl border border-line px-3 py-2 text-left text-sm hover:bg-paper-2 active:cursor-grabbing"
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = "copy";
                   e.dataTransfer.setData("text/plain", JSON.stringify({ kind: "peca", tipo: tipo.tipo }));
@@ -289,9 +292,9 @@ export function EditorShell({
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-paper-2 text-ink-soft">
                   {tipo.icone ? <IconeLucide nome={tipo.icone} size={14} /> : <Plus size={14} />}
                 </span>
-                <span>
-                  <strong className="block">{tipo.nome}</strong>
-                  <span className="text-xs text-muted">{tipo.descricao}</span>
+                <span className="min-w-0">
+                  <strong className="block truncate">{tipo.nome}</strong>
+                  <span className="block truncate text-xs text-muted">{tipo.descricao}</span>
                 </span>
               </button>
             ))}
@@ -308,7 +311,7 @@ export function EditorShell({
         </aside>
 
         <section
-          className="flex min-h-full flex-col overflow-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6"
+          className="flex min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6 lg:min-h-0"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -342,8 +345,8 @@ export function EditorShell({
               </div>
             </div>
           ) : (
-            <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col">
-              <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[2rem] border border-line">
+            <div className="relative mx-auto w-full max-w-3xl">
+              <div className="overflow-visible rounded-[2rem] border border-line">
                 <PageRenderer
                   pagina={pagina}
                   selecionadoId={selecionadoId}
@@ -365,7 +368,7 @@ export function EditorShell({
           )}
         </section>
 
-        <aside className="overflow-auto border-l border-line p-4">
+        <aside className="border-l border-line p-4 lg:min-h-0 lg:overflow-y-auto">
           <Tooltip passo="3" titulo="Ajuste aqui" texto="Muda só o que está selecionado na página." lado="esquerda">
             <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Ajustes</p>
           </Tooltip>

@@ -10,6 +10,7 @@ import { InspetorParte } from "./Inspector";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
+import { escutarPopover, liberarPopover, reivindicarPopover } from "./popoverExclusivo";
 
 const FONTES = {
   sans: "IBM Plex Sans, sans-serif",
@@ -80,13 +81,80 @@ function BotaoExcluirHold({ onConfirmar, rotulo = "Excluir" }) {
 
 const semMarca = (_parteId, node) => node;
 
-function PopoverRapido({ bloco, parte, tema, onAtualizar, onEscolherImagem, onFechar }) {
+function PopoverRapido({
+  ancoraRef,
+  bloco,
+  parte,
+  tema,
+  onAtualizar,
+  onEscolherImagem,
+  onFechar,
+  onEntrar,
+  onSair,
+}) {
+  const caixa = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const LARGURA = 320;
+  const ALTURA_MAX = Math.min(typeof window !== "undefined" ? window.innerHeight * 0.7 : 448, 448);
+
+  useLayoutEffect(() => {
+    const colocar = () => {
+      const alvo = ancoraRef?.current;
+      if (!alvo) return;
+      const ret = alvo.getBoundingClientRect();
+      const margem = 16;
+      let left = ret.left + ret.width / 2 - LARGURA / 2;
+      left = Math.max(margem, Math.min(left, window.innerWidth - LARGURA - margem));
+      const altura = caixa.current?.offsetHeight || ALTURA_MAX;
+      const cabeEmbaixo = ret.bottom + 10 + altura <= window.innerHeight - margem;
+      const top = cabeEmbaixo
+        ? ret.bottom + 10
+        : Math.max(margem, Math.min(ret.top - altura - 10, window.innerHeight - altura - margem));
+      setPos({ top, left });
+    };
+    colocar();
+    const id = window.requestAnimationFrame(colocar);
+    window.addEventListener("resize", colocar);
+    window.addEventListener("scroll", colocar, true);
+    return () => {
+      window.cancelAnimationFrame(id);
+      window.removeEventListener("resize", colocar);
+      window.removeEventListener("scroll", colocar, true);
+    };
+  }, [ancoraRef, bloco, parte, ALTURA_MAX]);
+
+  useEffect(() => {
+    const clicouFora = (evento) => {
+      if (caixa.current?.contains(evento.target)) return;
+      if (ancoraRef?.current?.contains(evento.target)) return;
+      onFechar?.();
+    };
+    const teclou = (evento) => {
+      if (evento.key === "Escape") onFechar?.();
+    };
+    document.addEventListener("pointerdown", clicouFora, true);
+    document.addEventListener("keydown", teclou);
+    return () => {
+      document.removeEventListener("pointerdown", clicouFora, true);
+      document.removeEventListener("keydown", teclou);
+    };
+  }, [onFechar, ancoraRef]);
+
   if (!bloco || !parte || !onAtualizar) return null;
   const set = (props) => onAtualizar({ ...bloco, props: { ...bloco.props, ...props } });
   const layout = perfilLayout(bloco.tipo);
 
-  return (
-    <div className="parte-popover" data-editor-chrome onClick={(e) => e.stopPropagation()}>
+  return createPortal(
+    <div
+      ref={caixa}
+      className="parte-popover"
+      data-editor-chrome
+      style={{ top: pos.top, left: pos.left, width: LARGURA, maxHeight: ALTURA_MAX }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseEnter={onEntrar}
+      onMouseLeave={onSair}
+    >
       <div className="parte-popover-caixa">
         <div className="parte-popover-topo">
           <p className="parte-popover-titulo">{parte.nome}</p>
@@ -127,7 +195,8 @@ function PopoverRapido({ bloco, parte, tema, onAtualizar, onEscolherImagem, onFe
           </CartaoAjuste>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -144,35 +213,58 @@ function Parte({
   children,
 }) {
   const alvo = idParte(bloco.id, parte.id);
+  const ancoraRef = useRef(null);
   const [hover, setHover] = useState(false);
   const [fechado, setFechado] = useState(false);
+  const [dono, setDono] = useState(false);
   const timer = useRef(0);
-  const mostrarPopover = onAtualizar && !fechado && (hover || ativo);
+  const ativoRef = useRef(ativo);
+  ativoRef.current = ativo;
+  const mostrarPopover = onAtualizar && !fechado && dono && (hover || ativo);
 
   const entrar = () => {
     clearTimeout(timer.current);
     setFechado(false);
     setHover(true);
+    reivindicarPopover(alvo);
   };
 
   const sair = () => {
     clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setHover(false), 220);
+    timer.current = window.setTimeout(() => {
+      setHover(false);
+      if (!ativoRef.current) liberarPopover(alvo);
+    }, 220);
   };
 
   const fecharPopover = () => {
     clearTimeout(timer.current);
     setFechado(true);
     setHover(false);
+    liberarPopover(alvo);
   };
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    liberarPopover(alvo);
+  }, [alvo]);
+
+  useEffect(() => escutarPopover((id) => setDono(id === alvo)), [alvo]);
+
   useEffect(() => {
-    if (!ativo) setFechado(false);
-  }, [ativo]);
+    if (ativo) {
+      setFechado(false);
+      reivindicarPopover(alvo);
+    }
+  }, [ativo, alvo]);
+
+  useEffect(() => {
+    if (ativo && !dono && !fechado) reivindicarPopover(alvo);
+  }, [ativo, dono, fechado, alvo]);
 
   return (
     <div
+      ref={ancoraRef}
       role="button"
       tabIndex={0}
       title={`Editar ${parte.nome.toLowerCase()}`}
@@ -184,12 +276,14 @@ function Parte({
       onClick={(evento) => {
         evento.stopPropagation();
         setFechado(false);
+        reivindicarPopover(alvo);
         onSelect(alvo);
       }}
       onKeyDown={(evento) => {
         if (evento.key !== "Enter") return;
         evento.stopPropagation();
         setFechado(false);
+        reivindicarPopover(alvo);
         onSelect(alvo);
       }}
     >
@@ -205,16 +299,17 @@ function Parte({
         </div>
       )}
       {mostrarPopover && (
-        <div onMouseEnter={entrar} onMouseLeave={sair}>
-          <PopoverRapido
-            bloco={bloco}
-            parte={parte}
-            tema={tema}
-            onAtualizar={onAtualizar}
-            onEscolherImagem={onEscolherImagem}
-            onFechar={fecharPopover}
-          />
-        </div>
+        <PopoverRapido
+          ancoraRef={ancoraRef}
+          bloco={bloco}
+          parte={parte}
+          tema={tema}
+          onAtualizar={onAtualizar}
+          onEscolherImagem={onEscolherImagem}
+          onFechar={fecharPopover}
+          onEntrar={entrar}
+          onSair={sair}
+        />
       )}
       {children}
     </div>
@@ -1362,7 +1457,7 @@ export function PageRenderer({
 
   return (
     <div
-      className={onSelect ? "flex min-h-full w-full flex-1 flex-col" : "flex min-h-screen flex-col"}
+      className={onSelect ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),
@@ -1373,7 +1468,7 @@ export function PageRenderer({
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}
     >
-      <div className={`mx-auto flex w-full flex-1 flex-col px-6 py-10 ${onSelect && !blocos.length ? "justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
+      <div className={`mx-auto w-full px-6 py-10 ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
         {onInserir && blocos.length > 0 && (
           <PontoDeInsercao
             permitirEstrutura
@@ -1395,7 +1490,7 @@ export function PageRenderer({
           </div>
         ))}
         {onInserir && !blocos.length && (
-          <div className="flex min-h-[18rem] flex-1 items-center justify-center py-16">
+          <div className="flex min-h-[18rem] items-center justify-center py-16">
             <ZonaVazia
               permitirEstrutura
               dica="Comece por aqui: escolha o que entra na página"

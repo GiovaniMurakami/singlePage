@@ -600,17 +600,14 @@ button, input, textarea, select {
 }
 
 .parte-popover {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  z-index: 25;
+  position: fixed;
+  z-index: 95;
   width: min(20rem, calc(100vw - 2rem));
-  padding-top: 0.55rem; /* ponte invisível até o menu */
-  transform: translateX(-50%);
+  margin-bottom: 1rem;
 }
 
 .parte-popover-caixa {
-  max-height: min(28rem, 70vh);
+  max-height: inherit;
   overflow: auto;
   padding: 0.65rem;
   border: 1px solid var(--color-line);
