@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1d1d1f;
+  --color-ink-soft: #424245;
+  --color-muted: #86868b;
+  --color-paper: #f5f5f7;
+  --color-paper-2: #ffffff;
+  --color-line: rgba(0, 0, 0, 0.08);
+  --color-accent: #0071e3;
+  --color-accent-strong: #0077ed;
+  --color-accent-soft: rgba(0, 113, 227, 0.12);
+  --color-success: #1d7a46;
+  --color-danger: #d70015;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --font-mono: "SF Mono", "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.038em;
+  font-weight: 600;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1), transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-on {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes flutuar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes pulso {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pular {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+  60% { transform: translateY(-3px); }
+}
+
+@keyframes brilho {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.35); }
+  50% { box-shadow: 0 0 0 10px rgba(0, 113, 227, 0); }
+}
+
+.item-interativo {
+  background: var(--item-bg, transparent);
+  color: var(--item-fg, currentColor);
+  border-color: var(--item-border, currentColor);
+  box-shadow: none;
+  transform: scale(1);
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.item-interativo:hover {
+  background: var(--item-bg-hover, var(--item-bg, transparent));
+  color: var(--item-fg-hover, var(--item-fg, currentColor));
+  border-color: var(--item-border-hover, var(--item-border, currentColor));
+  box-shadow: var(--item-shadow-hover, none);
+  transform: scale(var(--item-scale-hover, 1.04));
+}
+
+.anim-flutuar { animation: flutuar 2.6s ease-in-out infinite; }
+.anim-pulso { animation: pulso 1.8s ease-in-out infinite; }
+.anim-girar { animation: girar 4s linear infinite; }
+.anim-pular { animation: pular 1.2s ease-in-out infinite; }
+.anim-brilho { animation: brilho 2s ease-out infinite; }
+
+.hero-glow {
+  background:
+    radial-gradient(900px 420px at 50% -10%, rgba(0, 113, 227, 0.18), transparent 60%),
+    radial-gradient(520px 280px at 85% 20%, rgba(125, 211, 252, 0.2), transparent 55%);
+}
+
+.preview-celular {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.preview-celular::-webkit-scrollbar {
+  display: none;
+}
+
+.botao-excluir-hold {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #1d1d1f;
+  touch-action: none;
+  user-select: none;
+}
+
+.botao-excluir-hold-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #0a0a0a;
+  transform: scaleX(var(--hold, 0));
+  transform-origin: left center;
+}
+
+.botao-excluir-hold > :not(.botao-excluir-hold-fill) {
+  position: relative;
+  z-index: 1;
+}
+
+.bloco-editor {
+  outline: none;
+  transform-origin: center center;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms ease;
+}
+
+.bloco-editor[data-ativo="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.bloco-estrutura {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.bloco-estrutura[data-ativo="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.celula-editor {
+  min-height: 4.5rem;
+  border-radius: 1rem;
+  padding: 0.35rem;
+}
+
+.celula-editor-ativa {
+  background: var(--color-accent-soft);
+}
+
+.celula-editor-rotulo {
+  margin: 0 0 0.35rem;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+.zona-vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4.5rem;
+  margin: 0.35rem 0;
+  padding: 0.75rem;
+  border: 1px dashed color-mix(in srgb, currentColor 32%, transparent);
+  border-radius: 1rem;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+.zona-vazia-ativa,
+.zona-vazia-sobre {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  opacity: 1;
+}
+
+.bloco-editor.bloco-levantando {
+  opacity: 0.22;
+  transform: scale(0.975);
+  filter: brightness(0.94) saturate(0.85);
+  box-shadow: inset 0 12px 28px rgba(0, 0, 0, 0.14);
+  border-radius: 1.25rem;
+}
+
+.bloco-fantasma {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  pointer-events: none;
+  --inclinacao: 2deg;
+  will-change: transform;
+}
+
+.bloco-fantasma-carta {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 1.25rem;
+  transform: perspective(920px) translateY(0) rotateX(0) rotateZ(0) scale(1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bloco-fantasma-sombra {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -10px;
+  height: 28px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.32), transparent 72%);
+  filter: blur(10px);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.bloco-fantasma-alto .bloco-fantasma-carta {
+  transform: perspective(920px) translateY(-18px) rotateX(11deg) rotateZ(var(--inclinacao)) scale(1.045);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 16px 28px rgba(0, 0, 0, 0.16),
+    0 42px 68px rgba(0, 0, 0, 0.2);
+}
+
+.bloco-fantasma-alto .bloco-fantasma-sombra {
+  opacity: 1;
+  transform: scale(1.05) translateY(10px);
+}
+
+.bloco-fantasma-soltar .bloco-fantasma-carta {
+  transform: perspective(920px) translateY(0) rotateX(0) rotateZ(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+}
+
+.bloco-fantasma-soltar .bloco-fantasma-sombra {
+  opacity: 0;
+  transform: scale(0.7);
+}
