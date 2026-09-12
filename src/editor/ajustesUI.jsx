@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronLeft } from "lucide-react";
 import { DEGRADES_PRONTOS, modoFundo } from "./fundo";
 import { ALIGN_BLOCO, DIRECOES_FLEX, DISPLAYS_BLOCO, JUSTIFY_BLOCO, OBJECT_FIT, RAIOS_BLOCO } from "./aparencia";
 
@@ -25,12 +25,56 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
   );
 }
 
-export function Campo({ label, children }) {
+export function Campo({ label, dica, children }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs uppercase tracking-[0.16em] text-muted">{label}</span>
+      <span className="block text-xs uppercase tracking-[0.16em] text-muted">{label}</span>
+      {dica ? <span className="block text-[11px] leading-4 text-muted">{dica}</span> : null}
       {children}
     </label>
+  );
+}
+
+/** Cabeçalho do que está sendo editado, com caminho de volta. */
+export function CabecalhoAjuste({ titulo, dica, voltarPara, onVoltar }) {
+  return (
+    <div className="mb-3 rounded-2xl bg-paper px-3 py-2.5">
+      {voltarPara && onVoltar && (
+        <button type="button" className="mb-1 flex items-center gap-1 text-[11px] text-muted hover:text-ink" onClick={onVoltar}>
+          <ChevronLeft size={12} />
+          {voltarPara}
+        </button>
+      )}
+      <p className="text-sm font-medium">{titulo}</p>
+      {dica ? <p className="mt-0.5 text-[11px] leading-4 text-muted">{dica}</p> : null}
+    </div>
+  );
+}
+
+/** Atalhos para as partes internas do bloco (foto, título, botão…). */
+export function ListaPartes({ partes, parteAtiva, onEscolher }) {
+  if (!partes?.length) return null;
+  return (
+    <div className="mb-3 space-y-1.5">
+      <p className="text-[11px] leading-4 text-muted">
+        Passe o mouse na página e clique direto no que quer mudar — ou escolha aqui:
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {partes.map((parte) => (
+          <button
+            key={parte.id}
+            type="button"
+            title={parte.dica}
+            className={`rounded-full border px-2.5 py-1 text-[11px] ${
+              parteAtiva === parte.id ? "border-ink bg-ink text-paper" : "border-line hover:bg-paper-2"
+            }`}
+            onClick={() => onEscolher(parte.id)}
+          >
+            {parte.nome}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -143,12 +187,12 @@ export function CamposEspaco({ props, onChange }) {
   );
 }
 
-export function CamposLayout({ props, onChange }) {
+export function CamposLayout({ props, onChange, midia = false, altura = false }) {
   const display = props.display || "";
   const flexOuGrade = display === "flex" || display === "grid";
   return (
     <div className="space-y-3">
-      <Campo label="Display">
+      <Campo label="Display" dica="Como os itens se organizam dentro deste bloco.">
         <Pills
           valor={display}
           opcoes={DISPLAYS_BLOCO}
@@ -214,7 +258,7 @@ export function CamposLayout({ props, onChange }) {
           </Campo>
         </>
       )}
-      <Campo label="Cantos">
+      <Campo label="Cantos" dica="Arredondamento do bloco.">
         <Pills
           wrap
           valor={props.raio === "" || props.raio == null ? "" : String(props.raio)}
@@ -228,28 +272,36 @@ export function CamposLayout({ props, onChange }) {
       <Campo label="Ajuste fino do raio">
         <input type="range" min="0" max="48" value={props.raio === "" || props.raio == null ? 16 : Math.min(48, Number(props.raio))} onChange={(e) => onChange({ raio: Number(e.target.value) })} className="w-full" />
       </Campo>
-      <Campo label="Largura da foto / item">
-        <div className="flex items-center gap-2">
-          <input type="range" min="80" max="720" value={props.itemLargura === "" || props.itemLargura == null ? 720 : props.itemLargura} onChange={(e) => onChange({ itemLargura: Number(e.target.value) })} className="w-full" />
-          <span className="w-12 text-right text-xs text-muted">{props.itemLargura === "" || props.itemLargura == null ? "auto" : `${props.itemLargura}`}</span>
-        </div>
-      </Campo>
-      <Campo label="Encaixe da imagem">
-        <Pills valor={props.objectFit || "cover"} opcoes={OBJECT_FIT} onChange={(objectFit) => onChange({ objectFit })} />
-      </Campo>
-      <Campo label="Altura mínima">
-        <div className="flex items-center gap-2">
-          <input type="range" min="0" max="720" value={props.minAltura === "" || props.minAltura == null ? 0 : props.minAltura} onChange={(e) => onChange({ minAltura: Number(e.target.value) })} className="w-full" />
-          <span className="w-12 text-right text-xs text-muted">{props.minAltura === "" || props.minAltura == null ? "auto" : `${props.minAltura}`}</span>
-        </div>
-      </Campo>
-      <Campo label="Overflow">
-        <Pills
-          valor={props.overflow || ""}
-          opcoes={[{ id: "", nome: "Visível" }, { id: "hidden", nome: "Cortar" }]}
-          onChange={(overflow) => onChange({ overflow })}
-        />
-      </Campo>
+      {midia && (
+        <>
+          <Campo label="Largura da foto" dica="Só vale para fotos deste bloco.">
+            <div className="flex items-center gap-2">
+              <input type="range" min="80" max="720" value={props.itemLargura === "" || props.itemLargura == null ? 720 : props.itemLargura} onChange={(e) => onChange({ itemLargura: Number(e.target.value) })} className="w-full" />
+              <span className="w-12 text-right text-xs text-muted">{props.itemLargura === "" || props.itemLargura == null ? "auto" : `${props.itemLargura}`}</span>
+            </div>
+          </Campo>
+          <Campo label="Encaixe da imagem" dica="Como a foto preenche o espaço.">
+            <Pills valor={props.objectFit || "cover"} opcoes={OBJECT_FIT} onChange={(objectFit) => onChange({ objectFit })} />
+          </Campo>
+        </>
+      )}
+      {altura && (
+        <>
+          <Campo label="Altura mínima">
+            <div className="flex items-center gap-2">
+              <input type="range" min="0" max="720" value={props.minAltura === "" || props.minAltura == null ? 0 : props.minAltura} onChange={(e) => onChange({ minAltura: Number(e.target.value) })} className="w-full" />
+              <span className="w-12 text-right text-xs text-muted">{props.minAltura === "" || props.minAltura == null ? "auto" : `${props.minAltura}`}</span>
+            </div>
+          </Campo>
+          <Campo label="Overflow">
+            <Pills
+              valor={props.overflow || ""}
+              opcoes={[{ id: "", nome: "Visível" }, { id: "hidden", nome: "Cortar" }]}
+              onChange={(overflow) => onChange({ overflow })}
+            />
+          </Campo>
+        </>
+      )}
       <button
         type="button"
         className="text-xs text-muted hover:text-ink"
@@ -262,16 +314,41 @@ export function CamposLayout({ props, onChange }) {
           gap: "",
           colunasGrade: "",
           raio: "",
-          itemLargura: "",
-          objectFit: "",
-          minAltura: "",
-          overflow: "",
+          ...(midia ? { itemLargura: "", objectFit: "" } : {}),
+          ...(altura ? { minAltura: "", overflow: "" } : {}),
         })}
       >
         Voltar ao layout padrão
       </button>
     </div>
   );
+}
+
+/** Quais campos de layout fazem sentido para cada tipo de bloco. */
+export function perfilLayout(tipo) {
+  switch (tipo) {
+    case "imagem":
+    case "galeria":
+      return { midia: true, altura: true, titulo: "Layout e foto" };
+    case "cartoes":
+    case "depoimentos":
+      return { midia: true, altura: false, titulo: "Layout e cantos" };
+    case "capa":
+    case "faixa":
+    case "secao":
+    case "formulario":
+      return { midia: false, altura: true, titulo: "Layout e cantos" };
+    case "icones":
+    case "botoes":
+    case "redes":
+    case "navegacao":
+      return { midia: false, altura: false, titulo: "Layout e cantos" };
+    case "texto":
+    case "rodape":
+      return { midia: false, altura: false, titulo: "Layout e cantos" };
+    default:
+      return { midia: false, altura: false, titulo: "Layout e cantos" };
+  }
 }
 
 function definidoNumero(valor) {

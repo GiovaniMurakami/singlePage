@@ -24,6 +24,7 @@ export const ICONES_CATALOGO = [
 
 export function iconePadrao(extras = {}) {
   return {
+    id: crypto.randomUUID(),
     nome: "Heart",
     cor: "#ffffff",
     fundo: "#0071e3",

@@ -199,7 +199,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     depoimentos: {
-      itens: [{ citacao: "Funcionou na primeira semana.", autor: "Cliente" }],
+      itens: [{ citacao: "Funcionou na primeira semana.", autor: "Cliente", fotoUrl: "" }],
     },
     divisor: { estilo: "linha" },
     rodape: { texto: "© Você" },
@@ -506,6 +506,13 @@ export function aplicarImagemNoBloco(bloco, url, destino = "url") {
   }
   if (destino === "fundoImagem") {
     return { ...bloco, props: { ...bloco.props, fundoModo: "imagem", fundoImagem: url } };
+  }
+  if (String(destino).startsWith("depoimento:")) {
+    const indice = Number(String(destino).split(":")[1]);
+    const itens = [...(bloco.props.itens || [])];
+    if (!itens[indice]) return bloco;
+    itens[indice] = { ...itens[indice], fotoUrl: url };
+    return { ...bloco, props: { ...bloco.props, itens } };
   }
   return { ...bloco, props: { ...bloco.props, url } };
 }

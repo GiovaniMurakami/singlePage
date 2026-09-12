@@ -8,6 +8,7 @@ import { mailtoReuniaoSobMedida } from "../constants/suporte";
 
 const CARD = "flex h-full flex-col rounded-[1.8rem] bg-paper-2 p-6 ring-1 ring-line transition duration-200 hover:-translate-y-1 hover:shadow-lg";
 const BOTAO = "flex min-h-12 w-full items-center justify-center rounded-full bg-accent text-sm font-medium text-white transition hover:bg-accent-strong hover:shadow-md disabled:pointer-events-none disabled:opacity-50";
+const BOTAO_ATUAL = "flex min-h-12 w-full items-center justify-center rounded-full bg-ink text-sm font-medium text-paper";
 
 const PLANOS_FALLBACK = [
   { codigo: "free", nome: "Free", descricao: "Uma página. Anúncios na página publicada.", precoMensalCentavos: 0, paginasMaximas: 1, removeMarca: false, dominioProprio: false, anuncios: true },
@@ -82,9 +83,7 @@ export function PrecosPage() {
                     </a>
                   ) : plano.codigo === "free" ? (
                     atual ? (
-                      <span className={`${BOTAO} bg-paper-2 text-muted ring-1 ring-line hover:bg-paper-2 hover:shadow-none`}>
-                        Seu plano atual
-                      </span>
+                      <span className={BOTAO_ATUAL}>Seu plano atual</span>
                     ) : (
                       <Link to="/criar?modelos=1" className={BOTAO}>
                         Começar grátis
@@ -99,9 +98,9 @@ export function PrecosPage() {
                       type="button"
                       disabled={atual || checkout.isPending}
                       onClick={() => checkout.mutate(plano.codigo)}
-                      className={BOTAO}
+                      className={atual ? BOTAO_ATUAL : BOTAO}
                     >
-                      {atual ? "Plano atual" : "Assinar no Stripe"}
+                      {atual ? "Seu plano atual" : "Assinar no Stripe"}
                     </button>
                   )}
                 </div>

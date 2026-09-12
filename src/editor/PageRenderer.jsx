@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
-import { GripVertical, Trash2, Undo2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { GripVertical, Plus, Trash2, Undo2 } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
 import { AnuncioSlot } from "../components/ui/AnuncioSlot";
-import { camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
-import { caixaDoBloco, classeTexto, classeTitulo, estiloMidia, temaDoBloco } from "./aparencia";
+import { ESTILOS_BOTAO, TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
+import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloMidia, temaDoBloco, TAMANHOS_BOTAO, TAMANHOS_TEXTO, TAMANHOS_TITULO } from "./aparencia";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
+import { idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
 
 const FONTES = {
   sans: "IBM Plex Sans, sans-serif",
@@ -20,28 +22,32 @@ const LARGURAS = {
   completa: "100%",
 };
 
-const HOLD_EXCLUIR_MS = 300;
+const HOLD_EXCLUIR_MS = 200;
 
-function BotaoExcluirHold({ onConfirmar }) {
+function BotaoExcluirHold({ onConfirmar, rotulo = "Excluir" }) {
   const [progresso, setProgresso] = useState(0);
   const quadro = useRef(0);
   const inicio = useRef(0);
 
-  const parar = () => {
+  const cancelar = () => {
     cancelAnimationFrame(quadro.current);
     inicio.current = 0;
     setProgresso(0);
   };
 
-  const comecar = (evento) => {
+  const pressionar = (evento) => {
     evento.preventDefault();
     evento.stopPropagation();
+    evento.currentTarget.setPointerCapture?.(evento.pointerId);
     inicio.current = performance.now();
     const tick = (agora) => {
+      if (!inicio.current) return;
       const fator = Math.min(1, (agora - inicio.current) / HOLD_EXCLUIR_MS);
       setProgresso(fator);
       if (fator >= 1) {
-        parar();
+        inicio.current = 0;
+        cancelAnimationFrame(quadro.current);
+        setProgresso(0);
         onConfirmar();
         return;
       }
@@ -53,20 +59,313 @@ function BotaoExcluirHold({ onConfirmar }) {
   return (
     <button
       type="button"
-      aria-label="Segure para excluir"
+      aria-label={`Segure para excluir: ${rotulo}`}
       title="Segure para excluir"
       className="botao-excluir-hold inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-white"
       style={{ "--hold": progresso }}
-      onPointerDown={comecar}
-      onPointerUp={parar}
-      onPointerLeave={parar}
-      onPointerCancel={parar}
+      onPointerDown={pressionar}
+      onPointerUp={cancelar}
+      onPointerCancel={cancelar}
+      onLostPointerCapture={cancelar}
       onClick={(evento) => evento.stopPropagation()}
     >
       <span className="botao-excluir-hold-fill" aria-hidden />
       <Trash2 size={13} />
-      Excluir
+      {rotulo}
     </button>
+  );
+}
+
+const semMarca = (_parteId, node) => node;
+
+function opcoesRapidasDaParte(bloco, parteId) {
+  if (!bloco || !parteId) return null;
+  if (parteId === "titulo" || (bloco.tipo === "texto" && parteId === "titulo")) {
+    return { chave: "tamanhoTitulo", rotulo: "Tamanho", opcoes: TAMANHOS_TITULO.filter((o) => o.id) };
+  }
+  if (parteId === "subtitulo" || parteId === "corpo" || parteId === "legenda") {
+    return { chave: "tamanhoTexto", rotulo: "Tamanho", opcoes: TAMANHOS_TEXTO.filter((o) => o.id) };
+  }
+  if (parteId === "botao" && bloco.tipo === "capa") {
+    return [
+      { chave: "tamanhoBotao", rotulo: "Tamanho", opcoes: TAMANHOS_BOTAO.filter((o) => o.id) },
+      { chave: "estiloBotao", rotulo: "Estilo", opcoes: ESTILOS_BOTAO },
+    ];
+  }
+  if (bloco.tipo === "botoes" && parteId.startsWith("item-")) {
+    return { chave: "estilo", rotulo: "Estilo", opcoes: ESTILOS_BOTAO, item: true };
+  }
+  return null;
+}
+
+function PopoverRapido({ bloco, parteId, onAtualizar }) {
+  const cfg = opcoesRapidasDaParte(bloco, parteId);
+  if (!cfg || !onAtualizar) return null;
+  const grupos = Array.isArray(cfg) ? cfg : [cfg];
+  const indice = parteId.startsWith("item-") ? Number(parteId.split("-")[1]) : null;
+
+  const valorDe = (chave, item) => {
+    if (item) return bloco.props.itens?.[indice]?.[chave] || "";
+    return bloco.props[chave] || "";
+  };
+
+  const gravar = (chave, valor, item) => {
+    if (item) {
+      const itens = (bloco.props.itens || []).map((atual, i) => (i === indice ? { ...atual, [chave]: valor } : atual));
+      onAtualizar({ ...bloco, props: { ...bloco.props, itens } });
+      return;
+    }
+    onAtualizar({ ...bloco, props: { ...bloco.props, [chave]: valor } });
+  };
+
+  return (
+    <div className="parte-popover" data-editor-chrome onClick={(e) => e.stopPropagation()}>
+      <div className="parte-popover-caixa">
+        {grupos.map((grupo) => (
+          <div key={grupo.chave} className="parte-popover-grupo">
+            <span className="parte-popover-rotulo">{grupo.rotulo}</span>
+            <div className="parte-popover-pills">
+              {grupo.opcoes.map((opcao) => {
+                const ativo = valorDe(grupo.chave, grupo.item) === opcao.id;
+                return (
+                  <button
+                    key={opcao.id}
+                    type="button"
+                    className={ativo ? "ativo" : ""}
+                    onClick={() => gravar(grupo.chave, opcao.id, grupo.item)}
+                  >
+                    {opcao.nome}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Parte({
+  bloco,
+  parte,
+  ativo,
+  onSelect,
+  onRemover,
+  onAtualizar,
+  className = "",
+  children,
+}) {
+  const alvo = idParte(bloco.id, parte.id);
+  const [hover, setHover] = useState(false);
+  const timer = useRef(0);
+  const temPopover = Boolean(opcoesRapidasDaParte(bloco, parte.id) && onAtualizar);
+
+  const entrar = () => {
+    clearTimeout(timer.current);
+    setHover(true);
+  };
+
+  const sair = () => {
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setHover(false), 220);
+  };
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      title={`Editar ${parte.nome.toLowerCase()}`}
+      data-parte-ativa={ativo ? "true" : undefined}
+      data-parte-hover={hover ? "true" : undefined}
+      className={`parte-alvo ${className}`}
+      onMouseEnter={entrar}
+      onMouseLeave={sair}
+      onClick={(evento) => {
+        evento.stopPropagation();
+        onSelect(alvo);
+      }}
+      onKeyDown={(evento) => {
+        if (evento.key !== "Enter") return;
+        evento.stopPropagation();
+        onSelect(alvo);
+      }}
+    >
+      <span className="parte-etiqueta" data-editor-chrome>{parte.nome}</span>
+      {ativo && onRemover && podeRemoverParte(bloco, parte.id) && (
+        <div
+          className="parte-excluir"
+          data-editor-chrome
+          onMouseEnter={entrar}
+          onMouseLeave={sair}
+        >
+          <BotaoExcluirHold rotulo={parte.nome} onConfirmar={() => onRemover(bloco.id, parte.id)} />
+        </div>
+      )}
+      {(hover || ativo) && temPopover && (
+        <div onMouseEnter={entrar} onMouseLeave={sair}>
+          <PopoverRapido bloco={bloco} parteId={parte.id} onAtualizar={onAtualizar} />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function criarMarcador(bloco, selecionadoId, onSelect, extras = {}) {
+  const partes = partesDoBloco(bloco);
+  if (!partes.length) return undefined;
+  return (parteId, node, className = "") => {
+    const parte = partes.find((item) => item.id === parteId);
+    if (!parte) return node;
+    return (
+      <Parte
+        bloco={bloco}
+        parte={parte}
+        ativo={selecionadoId === idParte(bloco.id, parteId)}
+        onSelect={onSelect}
+        onRemover={extras.onRemoverParte}
+        onAtualizar={extras.onAtualizar}
+        className={className}
+      >
+        {node}
+      </Parte>
+    );
+  };
+}
+
+function MenuPecas({ ancoraRef, onEscolher, onFechar, permitirEstrutura = false }) {
+  const [busca, setBusca] = useState("");
+  const [pos, setPos] = useState({ top: 0, left: 0, abrirCima: false });
+  const caixa = useRef(null);
+  const MENU_LARGURA = 272;
+  const MENU_ALTURA = 320;
+
+  useLayoutEffect(() => {
+    const colocar = () => {
+      const alvo = ancoraRef?.current;
+      if (!alvo) return;
+      const ret = alvo.getBoundingClientRect();
+      let left = ret.left + ret.width / 2 - MENU_LARGURA / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - MENU_LARGURA - 8));
+      const cabeEmbaixo = ret.bottom + 8 + MENU_ALTURA <= window.innerHeight - 8;
+      const top = cabeEmbaixo
+        ? ret.bottom + 8
+        : Math.max(8, ret.top - MENU_ALTURA - 8);
+      setPos({ top, left, abrirCima: !cabeEmbaixo });
+    };
+    colocar();
+    window.addEventListener("resize", colocar);
+    window.addEventListener("scroll", colocar, true);
+    return () => {
+      window.removeEventListener("resize", colocar);
+      window.removeEventListener("scroll", colocar, true);
+    };
+  }, [ancoraRef]);
+
+  useEffect(() => {
+    const clicouFora = (evento) => {
+      if (caixa.current?.contains(evento.target)) return;
+      if (ancoraRef?.current?.contains(evento.target)) return;
+      onFechar();
+    };
+    const teclou = (evento) => {
+      if (evento.key === "Escape") onFechar();
+    };
+    document.addEventListener("pointerdown", clicouFora, true);
+    document.addEventListener("keydown", teclou);
+    return () => {
+      document.removeEventListener("pointerdown", clicouFora, true);
+      document.removeEventListener("keydown", teclou);
+    };
+  }, [onFechar, ancoraRef]);
+
+  const termo = busca.trim().toLowerCase();
+  const filtrar = (itens) => (
+    termo
+      ? itens.filter((item) => `${item.nome} ${item.descricao || ""}`.toLowerCase().includes(termo))
+      : itens
+  );
+  const grupos = [
+    { nome: "Conteúdo", itens: filtrar(TIPOS_PECA) },
+    ...(permitirEstrutura ? [{ nome: "Estrutura da página", itens: filtrar(TIPOS_ESTRUTURA) }] : []),
+  ].filter((grupo) => grupo.itens.length);
+
+  return createPortal(
+    <div
+      ref={caixa}
+      className="menu-pecas"
+      data-editor-chrome
+      style={{ top: pos.top, left: pos.left, width: MENU_LARGURA, maxHeight: MENU_ALTURA }}
+      onClick={(evento) => evento.stopPropagation()}
+    >
+      <input
+        autoFocus
+        className="menu-pecas-busca"
+        placeholder="O que você quer colocar aqui?"
+        value={busca}
+        onChange={(evento) => setBusca(evento.target.value)}
+      />
+      <div className="menu-pecas-lista">
+        {grupos.map((grupo) => (
+          <div key={grupo.nome}>
+            <p className="menu-pecas-grupo">{grupo.nome}</p>
+            {grupo.itens.map((tipo) => (
+              <button
+                key={tipo.tipo}
+                type="button"
+                className="menu-pecas-item"
+                onClick={() => onEscolher(tipo.tipo)}
+              >
+                <span className="menu-pecas-icone">
+                  {tipo.icone ? <IconeLucide nome={tipo.icone} size={14} color="currentColor" /> : <Plus size={14} />}
+                </span>
+                <span>
+                  <strong className="block">{tipo.nome}</strong>
+                  <span className="menu-pecas-dica">{tipo.descricao}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+        {!grupos.length && <p className="menu-pecas-dica px-2 py-3">Nada com esse nome.</p>}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function PontoDeInsercao({ onEscolher, permitirEstrutura = false, rotulo = "Adicionar aqui" }) {
+  const [aberto, setAberto] = useState(false);
+  const ancora = useRef(null);
+  return (
+    <div ref={ancora} className="ponto-insercao" data-editor-chrome data-aberto={aberto ? "true" : undefined}>
+      <button
+        type="button"
+        className="ponto-insercao-botao"
+        title={rotulo}
+        onClick={(evento) => {
+          evento.stopPropagation();
+          setAberto((valor) => !valor);
+        }}
+      >
+        <Plus size={13} />
+        <span>{rotulo}</span>
+      </button>
+      {aberto && (
+        <MenuPecas
+          ancoraRef={ancora}
+          permitirEstrutura={permitirEstrutura}
+          onFechar={() => setAberto(false)}
+          onEscolher={(tipo) => {
+            setAberto(false);
+            onEscolher(tipo);
+          }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -115,12 +414,13 @@ function estiloInterativo(item, base = {}) {
 
 function BotaoPagina({ item, tema, className = "" }) {
   const visual = estiloBotao(item.estilo || "preenchido", tema, item);
+  const tamanho = classeBotaoTamanho(item.tamanho || item.tamanhoBotao);
   return (
     <a
       href={item.url || "#"}
       target={item.novaAba ? "_blank" : undefined}
       rel={item.novaAba ? "noreferrer" : undefined}
-      className={`item-interativo inline-flex min-h-11 items-center justify-center px-6 text-sm font-medium ${visual.className} ${className}`}
+      className={`item-interativo inline-flex items-center justify-center font-medium ${tamanho} ${visual.className} ${className}`}
       style={estiloInterativo({
         ...item,
         fundo: item.fundo || visual.style.background,
@@ -133,25 +433,53 @@ function BotaoPagina({ item, tema, className = "" }) {
   );
 }
 
-function BlocoCapa({ props, tema }) {
+function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
   const local = temaDoBloco(props, tema);
   const centro = local.alinhamento !== "esquerda";
-  return (
-    <section className="py-16" style={caixaDoBloco(props)}>
-      {props.fotoUrl && (
-        <img
-          src={props.fotoUrl}
-          alt=""
-          className={`mb-6 h-28 w-28 rounded-full object-cover ${centro ? "mx-auto" : ""}`}
+  const tamanho = props.fotoTamanho || 112;
+  const raio = props.fotoRaio ?? 999;
+  const foto = props.fotoUrl ? (
+    <img
+      src={props.fotoUrl}
+      alt=""
+      className={`mb-6 object-cover ${centro ? "mx-auto" : ""}`}
+      style={{ width: tamanho, height: tamanho, borderRadius: raio }}
+    />
+  ) : (
+    <label
+      className={`capa-foto-vazia mb-6 ${centro ? "mx-auto" : ""}`}
+      style={{ width: tamanho, height: tamanho, borderRadius: raio }}
+      onClick={(evento) => evento.stopPropagation()}
+    >
+      <span>Foto</span>
+      <span className="capa-foto-vazia-dica">Clique para adicionar</span>
+      {onEscolherFoto && (
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          className="sr-only"
+          onChange={(evento) => {
+            const file = evento.target.files?.[0];
+            evento.target.value = "";
+            if (file) onEscolherFoto(file);
+          }}
         />
       )}
-      <h1 className={classeTitulo("capa", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h1>
-      {props.subtitulo && (
+    </label>
+  );
+
+  return (
+    <section className="py-16" style={caixaDoBloco(props)}>
+      {marcar("foto", foto)}
+      {marcar("titulo", (
+        <h1 className={classeTitulo("capa", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h1>
+      ))}
+      {props.subtitulo && marcar("subtitulo", (
         <p className={`mt-4 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-80"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
           {props.subtitulo}
         </p>
-      )}
-      {props.cta && (
+      ))}
+      {props.cta && marcar("botao", (
         <div className="mt-8">
           <BotaoPagina
             tema={local}
@@ -159,6 +487,7 @@ function BlocoCapa({ props, tema }) {
               rotulo: props.cta,
               url: props.url,
               estilo: props.estiloBotao,
+              tamanho: props.tamanhoBotao,
               novaAba: props.novaAba,
               fundo: props.fundoBotao,
               cor: props.corBotao,
@@ -169,25 +498,27 @@ function BlocoCapa({ props, tema }) {
             }}
           />
         </div>
-      )}
+      ))}
     </section>
   );
 }
 
-function BlocoTexto({ props }) {
+function BlocoTexto({ props, marcar = semMarca }) {
   return (
     <section className="py-10" style={caixaDoBloco(props)}>
-      {props.titulo && <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>}
-      {props.corpo && (
-        <p className={`mt-3 whitespace-pre-wrap ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-85"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+      {props.titulo && marcar("titulo", (
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+      ))}
+      {props.corpo && marcar("corpo", (
+        <p className={`whitespace-pre-wrap ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-85"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
           {props.corpo}
         </p>
-      )}
+      ), "mt-3")}
     </section>
   );
 }
 
-function BlocoImagem({ props, onEnviarImagem }) {
+function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
   if (!props.url) {
     return (
       <div className="my-8">
@@ -217,28 +548,32 @@ function BlocoImagem({ props, onEnviarImagem }) {
   }
   return (
     <figure className="my-8" style={caixaDoBloco(props)}>
-      <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloMidia(props, "1rem")} />
-      {props.caption && (
-        <figcaption className={`mt-2 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+      {marcar("imagem", (
+        <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloMidia(props, "1rem")} />
+      ))}
+      {props.caption && marcar("legenda", (
+        <figcaption className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
           {props.caption}
         </figcaption>
-      )}
+      ), "mt-2")}
     </figure>
   );
 }
 
-function BlocoBotoes({ props, tema }) {
+function BlocoBotoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
   return (
     <div className={props.display ? "py-6" : "flex flex-col gap-3 py-6"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
-        <BotaoPagina key={`${item.rotulo}-${index}`} item={item} tema={local} className="min-h-12 w-full" />
+        <div key={`${item.rotulo}-${index}`} className="contents">
+          {marcar(`item-${index}`, <BotaoPagina item={item} tema={local} className="min-h-12 w-full" />)}
+        </div>
       ))}
     </div>
   );
 }
 
-function BlocoGaleria({ props, interativo }) {
+function BlocoGaleria({ props, interativo, marcar = semMarca }) {
   const urls = (props.urls || []).filter(Boolean);
   const [aberta, setAberta] = useState(null);
   const custom = Boolean(props.display);
@@ -246,19 +581,20 @@ function BlocoGaleria({ props, interativo }) {
     <>
       <div className={custom ? "w-full py-8" : "grid w-full gap-3 py-8 sm:grid-cols-2"} style={caixaDoBloco(props)}>
         {(urls.length ? urls : ["", "", ""]).map((url, index) => (
-          url
-            ? (
-              <button
-                key={url + index}
-                type="button"
-                className="overflow-hidden"
-                style={estiloMidia(props, "1rem")}
-                onClick={() => interativo && setAberta(url)}
-              >
-                <img src={url} alt="" className="aspect-square w-full" style={{ objectFit: props.objectFit || "cover", display: "block" }} />
-              </button>
-            )
-            : <div key={index} className="aspect-square border border-dashed border-line" style={estiloMidia(props, "1rem")} />
+          <div key={url ? url + index : `vazia-${index}`} className="contents">
+            {url
+              ? marcar(`item-${index}`, (
+                <button
+                  type="button"
+                  className="w-full overflow-hidden"
+                  style={estiloMidia(props, "1rem")}
+                  onClick={() => interativo && setAberta(url)}
+                >
+                  <img src={url} alt="" className="aspect-square w-full" style={{ objectFit: props.objectFit || "cover", display: "block" }} />
+                </button>
+              ))
+              : <div className="aspect-square border border-dashed border-line" style={estiloMidia(props, "1rem")} />}
+          </div>
         ))}
       </div>
       {aberta && (
@@ -274,18 +610,33 @@ function BlocoGaleria({ props, interativo }) {
   );
 }
 
-function BlocoDepoimentos({ props }) {
+function BlocoDepoimentos({ props, marcar = semMarca }) {
   return (
     <div className="grid gap-4 py-8" style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
-        <blockquote key={index} className="border border-line px-5 py-4" style={estiloMidia(props, "1rem")}>
-          <p className={classeTitulo("texto", props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>“{item.citacao}”</p>
-          {item.autor && (
-            <footer className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
-              {item.autor}
-            </footer>
-          )}
-        </blockquote>
+        <div key={index} className="contents">
+          {marcar(`item-${index}`, (
+            <blockquote className="border border-line px-5 py-4 text-left" style={estiloMidia(props, "1rem")}>
+              <div className="flex items-start gap-3">
+                {item.fotoUrl ? (
+                  <img src={item.fotoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <span className="depoimento-foto-vazia" aria-hidden>
+                    {(item.autor || "?").slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className={classeTitulo("texto", props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>“{item.citacao}”</p>
+                  {item.autor && (
+                    <footer className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+                      {item.autor}
+                    </footer>
+                  )}
+                </div>
+              </div>
+            </blockquote>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -365,7 +716,7 @@ function CampoPagina({ campo, valor, onChange, interativo, className }) {
   );
 }
 
-function BlocoFormulario({ props, tema, interativo }) {
+function BlocoFormulario({ props, tema, interativo, marcar = semMarca }) {
   const campos = camposDoFormulario(props);
   const [valores, setValores] = useState({});
   const [enviado, setEnviado] = useState(false);
@@ -395,26 +746,32 @@ function BlocoFormulario({ props, tema, interativo }) {
   const local = temaDoBloco(props, tema);
   return (
     <form className="py-10" onSubmit={enviar} id="formulario" style={caixaDoBloco(props)}>
-      {props.titulo && <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>}
-      <div className="mt-4 flex flex-col gap-3">
-        {campos.map((campo) => (
-          <CampoPagina
-            key={campo.id}
-            campo={campo}
-            valor={valores[campo.id]}
-            onChange={(valor) => setValor(campo.id, valor)}
-            interativo={interativo}
-            className=""
-          />
-        ))}
+      {props.titulo && marcar("titulo", (
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+      ))}
+      {marcar("campos", (
+        <div className="flex flex-col gap-3">
+          {campos.map((campo) => (
+            <CampoPagina
+              key={campo.id}
+              campo={campo}
+              valor={valores[campo.id]}
+              onChange={(valor) => setValor(campo.id, valor)}
+              interativo={interativo}
+              className=""
+            />
+          ))}
+        </div>
+      ), "mt-4")}
+      {marcar("botao", (
         <button
           type="submit"
-          className="min-h-12 rounded-full px-6 text-sm font-medium text-white"
+          className="min-h-12 w-full rounded-full px-6 text-sm font-medium text-white"
           style={{ background: local.destaque }}
         >
           {props.botao || "Enviar"}
         </button>
-      </div>
+      ), "mt-3")}
       {erro && <p className="mt-3 text-sm text-red-400">{erro}</p>}
       {enviado && (
         <p className="mt-3 text-sm opacity-70">
@@ -425,19 +782,23 @@ function BlocoFormulario({ props, tema, interativo }) {
   );
 }
 
-function BlocoRedes({ props }) {
+function BlocoRedes({ props, marcar = semMarca }) {
   return (
     <div className={props.display ? "py-6 text-sm" : "flex flex-wrap justify-center gap-4 py-6 text-sm"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
-        <a key={index} href={item.url || "#"} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
-          {item.rotulo}
-        </a>
+        <div key={index} className="contents">
+          {marcar(`item-${index}`, (
+            <a href={item.url || "#"} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
+              {item.rotulo}
+            </a>
+          ))}
+        </div>
       ))}
     </div>
   );
 }
 
-function BlocoNavegacao({ props, tema }) {
+function BlocoNavegacao({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
   return (
     <nav
@@ -445,9 +806,13 @@ function BlocoNavegacao({ props, tema }) {
       style={{ background: props.corFundo || `${local.fundo}cc`, color: props.corTexto || undefined }}
     >
       {(props.itens || []).map((item, index) => (
-        <a key={index} href={`#${item.ancora || ""}`} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
-          {item.rotulo}
-        </a>
+        <div key={index} className="contents">
+          {marcar(`item-${index}`, (
+            <a href={`#${item.ancora || ""}`} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
+              {item.rotulo}
+            </a>
+          ))}
+        </div>
       ))}
     </nav>
   );
@@ -460,19 +825,21 @@ function filhosPadrao(lista, tema, interativo) {
   });
 }
 
-function BlocoSecao({ props, tema, interativo, filhos }) {
+function BlocoSecao({ props, tema, interativo, filhos, marcar = semMarca }) {
   const lista = filhos ?? filhosPadrao(props.blocos, tema, interativo);
   if (!props.titulo && !props.subtitulo && !filhos && !(props.blocos || []).length) {
     return <div id={props.ancora} className="scroll-mt-20" />;
   }
   return (
     <section id={props.ancora} className="scroll-mt-20 pt-12" style={caixaDoBloco(props)}>
-      {props.titulo && <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>}
-      {props.subtitulo && (
-        <p className={`mt-2 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-70"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+      {props.titulo && marcar("titulo", (
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+      ))}
+      {props.subtitulo && marcar("subtitulo", (
+        <p className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-70"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
           {props.subtitulo}
         </p>
-      )}
+      ), "mt-2")}
       {lista}
     </section>
   );
@@ -499,7 +866,7 @@ function BlocoRodape({ props }) {
   );
 }
 
-function BlocoCartoes({ props, tema }) {
+function BlocoCartoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
   const colunas = props.colunas || 3;
   const custom = Boolean(props.display);
@@ -507,19 +874,23 @@ function BlocoCartoes({ props, tema }) {
   return (
     <div className={custom ? "py-8" : `grid gap-4 py-8 ${grade}`} style={caixaDoBloco({ ...props, corFundo: undefined })}>
       {(props.itens || []).map((item, index) => (
-        <article key={`${item.titulo}-${index}`} className="border border-line px-5 py-5 text-left" style={{ ...(props.corFundo ? { background: props.corFundo, color: props.corTexto || undefined } : undefined), ...estiloMidia(props, "1rem") }}>
-          {item.icone && (
-            <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${local.destaque}22`, color: local.destaque }}>
-              <IconeLucide nome={item.icone} size={18} color="currentColor" />
-            </span>
-          )}
-          {item.titulo && <h3 className={classeTitulo("texto", props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{item.titulo}</h3>}
-          {item.corpo && (
-            <p className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-80"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
-              {item.corpo}
-            </p>
-          )}
-        </article>
+        <div key={`${item.titulo}-${index}`} className="contents">
+          {marcar(`item-${index}`, (
+            <article className="h-full border border-line px-5 py-5 text-left" style={{ ...(props.corFundo ? { background: props.corFundo, color: props.corTexto || undefined } : undefined), ...estiloMidia(props, "1rem") }}>
+              {item.icone && (
+                <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${local.destaque}22`, color: local.destaque }}>
+                  <IconeLucide nome={item.icone} size={18} color="currentColor" />
+                </span>
+              )}
+              {item.titulo && <h3 className={classeTitulo("texto", props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{item.titulo}</h3>}
+              {item.corpo && (
+                <p className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-80"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+                  {item.corpo}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -547,7 +918,7 @@ function BlocoGrade({ props, tema, interativo, filhos }) {
   );
 }
 
-function BlocoFaixa({ props, tema, interativo, filhos }) {
+function BlocoFaixa({ props, tema, interativo, filhos, marcar = semMarca }) {
   const faixaTema = {
     ...tema,
     fundo: props.fundo || "#111111",
@@ -556,14 +927,18 @@ function BlocoFaixa({ props, tema, interativo, filhos }) {
   };
   return (
     <section className="-mx-6 my-6 px-6 py-12" style={{ ...cssFundo(props, "fundo"), color: faixaTema.texto, textAlign: props.alinhamento === "esquerda" ? "left" : props.alinhamento === "centro" ? "center" : undefined }}>
-      {props.titulo && <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>}
-      {props.subtitulo && <p className={`mt-3 ${classeTexto(props.tamanhoTexto)} opacity-80`}>{props.subtitulo}</p>}
+      {props.titulo && marcar("titulo", (
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+      ))}
+      {props.subtitulo && marcar("subtitulo", (
+        <p className={`${classeTexto(props.tamanhoTexto)} opacity-80`}>{props.subtitulo}</p>
+      ), "mt-3")}
       {filhos ?? filhosPadrao(props.blocos, faixaTema, interativo)}
     </section>
   );
 }
 
-function BlocoIcones({ props }) {
+function BlocoIcones({ props, marcar = semMarca }) {
   return (
     <div className={props.display ? "py-6" : "flex flex-wrap items-center justify-center gap-3 py-6"} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => {
@@ -586,14 +961,15 @@ function BlocoIcones({ props }) {
             </span>
           </span>
         );
-        if (item.url) {
-          return (
-            <a key={`${item.nome}-${index}`} href={item.url} target={item.novaAba ? "_blank" : undefined} rel={item.novaAba ? "noreferrer" : undefined} aria-label={item.nome}>
-              {visual}
-            </a>
-          );
-        }
-        return <span key={`${item.nome}-${index}`}>{visual}</span>;
+        return (
+          <div key={`${item.nome}-${index}`} className="contents">
+            {marcar(`item-${index}`, item.url ? (
+              <a href={item.url} target={item.novaAba ? "_blank" : undefined} rel={item.novaAba ? "noreferrer" : undefined} aria-label={item.nome}>
+                {visual}
+              </a>
+            ) : <span>{visual}</span>)}
+          </div>
+        );
       })}
     </div>
   );
@@ -627,31 +1003,51 @@ function lerDadosArrasto(evento) {
   }
 }
 
-function ZonaVazia({ ativo, sobre, dica, onSelect, onDragOver, onDrop }) {
+function ZonaVazia({ ativo, sobre, dica, onSelect, onEscolher, onDragOver, onDrop, permitirEstrutura = false }) {
+  const [aberto, setAberto] = useState(false);
+  const ancora = useRef(null);
+  const abrir = () => {
+    onSelect?.();
+    if (onEscolher) setAberto(true);
+  };
   return (
     <div
+      ref={ancora}
       role="button"
       tabIndex={0}
       data-ativo={ativo ? "true" : undefined}
       className={`zona-vazia ${sobre ? "zona-vazia-sobre" : ""} ${ativo ? "zona-vazia-ativa" : ""}`}
       onClick={(evento) => {
         evento.stopPropagation();
-        onSelect?.();
+        abrir();
       }}
       onKeyDown={(evento) => {
-        if (evento.key === "Enter") onSelect?.();
+        if (evento.key === "Enter") abrir();
       }}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      {dica}
+      <span className="zona-vazia-acao">
+        <Plus size={14} />
+        {dica}
+      </span>
+      {aberto && onEscolher && (
+        <MenuPecas
+          ancoraRef={ancora}
+          permitirEstrutura={permitirEstrutura}
+          onFechar={() => setAberto(false)}
+          onEscolher={(tipo) => {
+            setAberto(false);
+            onEscolher(tipo);
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function ItemCanvas({ bloco, tema, editor, faixaTema }) {
   const Comp = COMPONENTES[bloco.tipo];
-  if (!Comp) return null;
   const local = faixaTema || tema;
   const {
     selecionadoId,
@@ -662,14 +1058,28 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
     onSoltarArrasto,
     onEscolherImagem,
     onRemover,
+    onRemoverParte,
     onDesfazer,
     temDesfazer,
+    onInserir,
+    onAtualizar,
   } = editor || {};
   const interativo = !onSelect;
   const podeArrastar = Boolean(onInicioArrasto);
-  const ativo = selecionadoId === bloco.id;
+  const { blocoId: selecionadoBlocoId, parteId: selecionadaParteId } = separarAlvo(selecionadoId);
+  const ativo = selecionadoBlocoId === bloco.id;
+  const parteAtiva = ativo ? selecionadaParteId : null;
+  const parteSelecionada = parteAtiva ? partesDoBloco(bloco).find((item) => item.id === parteAtiva) : null;
   const alvo = arrasto?.sobreId === bloco.id;
   const estrutura = ehTipoEstrutura(bloco.tipo);
+  const caixa = useRef(null);
+
+  useEffect(() => {
+    if (!ativo || !caixa.current) return;
+    caixa.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [ativo]);
+
+  if (!Comp) return null;
 
   const soltarEm = (evento, blocoId, extra) => {
     if (!onSoltarArrasto) return;
@@ -684,7 +1094,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
     if (bloco.tipo === "grade") {
       return (bloco.props.celulas || []).map((celula, indice) => {
         const sobreCelula = arrasto?.sobreCelulaId === celula.id;
-        const celulaAtiva = selecionadoId === celula.id;
+        const celulaAtiva = selecionadoBlocoId === celula.id;
         const vazia = !(celula.blocos || []).length;
         return (
           <div
@@ -703,14 +1113,23 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
           >
             <p className="celula-editor-rotulo">Coluna {indice + 1}</p>
             {(celula.blocos || []).map((filho) => (
-              <ItemCanvas key={filho.id} bloco={filho} tema={local} editor={editor} />
+              <div key={filho.id}>
+                <ItemCanvas bloco={filho} tema={local} editor={editor} />
+                {onInserir && (
+                  <PontoDeInsercao
+                    rotulo="Adicionar aqui"
+                    onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: filho.id, posicao: "depois" })}
+                  />
+                )}
+              </div>
             ))}
-            {(vazia || onSelect) && (
+            {vazia && (
               <ZonaVazia
                 ativo={celulaAtiva}
                 sobre={sobreCelula}
-                dica={vazia ? "Solte uma peça aqui" : "Mais uma peça"}
+                dica="Coloque algo nesta coluna"
                 onSelect={() => onSelect?.(celula.id)}
+                onEscolher={onInserir ? (tipo) => onInserir(tipo, { modo: "celula", celulaId: celula.id }) : undefined}
                 onDragOver={onSobreArrasto ? (evento) => {
                   evento.preventDefault();
                   evento.stopPropagation();
@@ -732,20 +1151,30 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
       return (
         <>
           {(bloco.props.blocos || []).map((filho) => (
-            <ItemCanvas
-              key={filho.id}
-              bloco={filho}
-              tema={temaFilhos}
-              editor={editor}
-              faixaTema={bloco.tipo === "faixa" ? temaFilhos : undefined}
-            />
+            <div key={filho.id}>
+              <ItemCanvas
+                bloco={filho}
+                tema={temaFilhos}
+                editor={editor}
+                faixaTema={bloco.tipo === "faixa" ? temaFilhos : undefined}
+              />
+              {onInserir && (
+                <PontoDeInsercao
+                  permitirEstrutura
+                  rotulo="Adicionar aqui"
+                  onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: filho.id, posicao: "depois" })}
+                />
+              )}
+            </div>
           ))}
-          {onSelect && (
+          {onSelect && vazia && (
             <ZonaVazia
-              ativo={ativo && vazia}
+              permitirEstrutura
+              ativo={ativo}
               sobre={sobreDentro}
-              dica={bloco.tipo === "secao" ? "Solte colunas ou peças nesta seção" : "Solte uma peça na faixa"}
+              dica={bloco.tipo === "secao" ? "Coloque colunas ou conteúdo nesta seção" : "Coloque algo nesta faixa"}
               onSelect={() => onSelect?.(bloco.id)}
+              onEscolher={onInserir ? (tipo) => onInserir(tipo, { modo: "dentro", containerId: bloco.id }) : undefined}
               onDragOver={onSobreArrasto ? (evento) => {
                 evento.preventDefault();
                 evento.stopPropagation();
@@ -765,10 +1194,22 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
       props={bloco.props || {}}
       tema={local}
       interativo={interativo}
+      marcar={onSelect ? criarMarcador(bloco, selecionadoId, onSelect, {
+        onRemoverParte,
+        onAtualizar,
+      }) : undefined}
       filhos={onSelect ? filhosEditor() : undefined}
       onEnviarImagem={
         onEscolherImagem && bloco.tipo === "imagem"
           ? (file) => onEscolherImagem(file, bloco, "url")
+          : undefined
+      }
+      onEscolherFoto={
+        onEscolherImagem && bloco.tipo === "capa"
+          ? (file) => {
+            onSelect?.(idParte(bloco.id, "foto"));
+            onEscolherImagem(file, bloco, "fotoUrl");
+          }
           : undefined
       }
     />
@@ -777,7 +1218,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
   if (!onSelect) return conteudo;
 
   return (
-    <div>
+    <div ref={caixa}>
       {podeArrastar && alvo && arrasto?.posicao === "antes" && (
         <div className="my-2 h-1 rounded-full bg-accent" />
       )}
@@ -785,6 +1226,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
         role="button"
         tabIndex={0}
         data-ativo={ativo ? "true" : undefined}
+        data-parte-aberta={parteAtiva ? "true" : undefined}
         onClick={(evento) => {
           evento.stopPropagation();
           onSelect(bloco.id);
@@ -832,11 +1274,21 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
               <GripVertical size={14} />
             </button>
             {ativo && (
-              <span className="pr-2 text-[11px] font-medium">{nomeDoTipo(bloco.tipo)}</span>
+              <button
+                type="button"
+                className="pr-2 text-[11px] font-medium"
+                title={parteAtiva ? `Voltar para a ${nomeDoTipo(bloco.tipo).toLowerCase()} inteira` : undefined}
+                onClick={(evento) => {
+                  evento.stopPropagation();
+                  onSelect(bloco.id);
+                }}
+              >
+                {parteSelecionada ? `${nomeDoTipo(bloco.tipo)} › ${parteSelecionada.nome}` : nomeDoTipo(bloco.tipo)}
+              </button>
             )}
           </div>
         )}
-        {ativo && onRemover && (
+        {ativo && onRemover && !parteAtiva && (
           <div data-editor-chrome className="absolute right-2 top-2 z-20 flex items-center gap-1">
             {temDesfazer && onDesfazer && (
               <button
@@ -852,7 +1304,23 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
                 Desfazer
               </button>
             )}
-            <BotaoExcluirHold onConfirmar={() => onRemover(bloco.id)} />
+            <BotaoExcluirHold rotulo={nomeDoTipo(bloco.tipo)} onConfirmar={() => onRemover(bloco.id)} />
+          </div>
+        )}
+        {ativo && parteAtiva && temDesfazer && onDesfazer && (
+          <div data-editor-chrome className="absolute right-2 top-2 z-20">
+            <button
+              type="button"
+              aria-label="Desfazer exclusão"
+              className="inline-flex items-center gap-1 rounded-md bg-[#1d1d1f] px-2 py-1.5 text-[11px] font-medium text-white hover:bg-ink-soft"
+              onClick={(evento) => {
+                evento.stopPropagation();
+                onDesfazer();
+              }}
+            >
+              <Undo2 size={13} />
+              Desfazer
+            </button>
           </div>
         )}
         {conteudo}
@@ -876,20 +1344,38 @@ export function PageRenderer({
   onSoltarArrasto,
   onEscolherImagem,
   onRemover,
+  onRemoverParte,
   onDesfazer,
   temDesfazer,
+  onInserir,
+  onAtualizar,
 }) {
   const tema = pagina.tema || {};
   const interativo = !onSelect;
   const mostrarAnuncios = anuncios && interativo;
-  const meio = Math.max(0, Math.floor((pagina.blocos || []).length / 2) - 1);
+  const blocos = pagina.blocos || [];
+  const meio = Math.max(0, Math.floor(blocos.length / 2) - 1);
   const editor = onSelect
-    ? { selecionadoId, onSelect, arrasto, onInicioArrasto, onSobreArrasto, onSoltarArrasto, onEscolherImagem, onRemover, onDesfazer, temDesfazer }
+    ? {
+      selecionadoId,
+      onSelect,
+      arrasto,
+      onInicioArrasto,
+      onSobreArrasto,
+      onSoltarArrasto,
+      onEscolherImagem,
+      onRemover,
+      onRemoverParte,
+      onDesfazer,
+      temDesfazer,
+      onInserir,
+      onAtualizar,
+    }
     : null;
 
   return (
     <div
-      className="flex min-h-full min-h-screen flex-1 flex-col"
+      className={onSelect ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),
@@ -900,13 +1386,36 @@ export function PageRenderer({
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}
     >
-      <div className="mx-auto flex w-full flex-1 flex-col px-6 py-10" style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
-        {(pagina.blocos || []).map((bloco, index) => (
+      <div className="mx-auto w-full px-6 py-10" style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
+        {onInserir && blocos.length > 0 && (
+          <PontoDeInsercao
+            permitirEstrutura
+            rotulo="Adicionar no começo"
+            onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: blocos[0].id, posicao: "antes" })}
+          />
+        )}
+        {blocos.map((bloco, index) => (
           <div key={bloco.id}>
             <ItemCanvas bloco={bloco} tema={tema} editor={editor} />
+            {onInserir && (
+              <PontoDeInsercao
+                permitirEstrutura
+                rotulo="Adicionar aqui"
+                onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: bloco.id, posicao: "depois" })}
+              />
+            )}
             {mostrarAnuncios && index === meio && <AnuncioSlot posicao="meio" />}
           </div>
         ))}
+        {onInserir && !blocos.length && (
+          <div className="flex items-center justify-center py-16">
+            <ZonaVazia
+              permitirEstrutura
+              dica="Comece por aqui: escolha o que entra na página"
+              onEscolher={(tipo) => onInserir(tipo, { modo: "fim" })}
+            />
+          </div>
+        )}
         {mostrarAnuncios && <AnuncioSlot posicao="rodape" />}
         {marca && (
           <p className="pt-8 text-xs uppercase tracking-[0.2em] opacity-40">

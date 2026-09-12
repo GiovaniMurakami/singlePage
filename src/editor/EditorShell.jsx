@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Monitor, Plus, Smartphone, Undo2 } from "lucide-react";
 import { Pills } from "./ajustesUI";
@@ -23,6 +23,7 @@ import {
 } from "./blocosArvore";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { cssFundo } from "./fundo";
+import { parteDoBloco, removerParteDoBloco, separarAlvo } from "./partes";
 
 function lerArrasto(evento) {
   try {
@@ -76,18 +77,27 @@ export function EditorShell({
   const [desfazer, setDesfazer] = useState(null);
   const [guiaAberta, setGuiaAberta] = useState(() => window.localStorage.getItem("single.guia-editor") !== "oculto");
 
-  const alvo = useMemo(() => contextoDoAlvo(pagina.blocos, selecionadoId), [pagina.blocos, selecionadoId]);
+  const { blocoId: alvoId, parteId } = separarAlvo(selecionadoId);
+  const alvo = useMemo(() => contextoDoAlvo(pagina.blocos, alvoId), [pagina.blocos, alvoId]);
   const bloco = alvo?.kind === "bloco" ? alvo.bloco : null;
+  const parte = parteDoBloco(bloco, parteId);
   const arvore = useMemo(() => listarArvore(pagina.blocos), [pagina.blocos]);
-  const migalhas = useMemo(() => caminhoDoAlvo(pagina.blocos, selecionadoId), [pagina.blocos, selecionadoId]);
+  const migalhas = useMemo(() => caminhoDoAlvo(pagina.blocos, alvoId), [pagina.blocos, alvoId]);
   const tiposPaleta = paleta === "estrutura" ? TIPOS_ESTRUTURA : TIPOS_PECA;
-  const dicaDestino = rotuloDestino(pagina.blocos, selecionadoId, paleta === "estrutura" ? "grade" : "texto");
-  const passoAtivo = paleta === "estrutura" && !bloco ? 1 : !selecionadoId ? 2 : 3;
+  const dicaDestino = rotuloDestino(pagina.blocos, alvoId, paleta === "estrutura" ? "grade" : "texto");
+  const passoAtivo = !selecionadoId ? 1 : parteId ? 3 : 2;
   const celular = visao === "celular";
 
   const removerSelecionado = (id) => {
     setDesfazer({ blocos: pagina.blocos, selecionadoId: id });
     gravar(removerBloco(pagina.blocos, id), null);
+  };
+
+  const removerParte = (blocoId, idDaParte) => {
+    const ctx = contextoDoAlvo(pagina.blocos, blocoId);
+    if (ctx?.kind !== "bloco") return;
+    setDesfazer({ blocos: pagina.blocos, selecionadoId: blocoId });
+    gravar(substituirBloco(pagina.blocos, removerParteDoBloco(ctx.bloco, idDaParte)), blocoId);
   };
 
   const desfazerRemocao = () => {
@@ -102,12 +112,19 @@ export function EditorShell({
   };
 
   const atualizarBloco = (proximo) => {
-    gravar(substituirBloco(pagina.blocos, proximo), proximo.id);
+    // Não troca a seleção: se estiver numa parte (bloco::foto), manter o foco do input.
+    onChange({ ...pagina, blocos: substituirBloco(pagina.blocos, proximo) });
   };
 
   const adicionarPeca = (tipo) => {
     const novo = blocoPadrao(tipo);
-    const destino = destinoDaInsercao(pagina.blocos, selecionadoId, tipo);
+    const destino = destinoDaInsercao(pagina.blocos, alvoId, tipo);
+    gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
+    setAba("bloco");
+  };
+
+  const inserirEm = (tipo, destino) => {
+    const novo = blocoPadrao(tipo);
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
   };
@@ -151,6 +168,32 @@ export function EditorShell({
     setSelecionadoId(id);
     setAba("bloco");
   };
+
+  useEffect(() => {
+    const atalho = (evento) => {
+      const foco = evento.target;
+      const digitando = foco?.isContentEditable
+        || ["INPUT", "TEXTAREA", "SELECT"].includes(foco?.tagName);
+      if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === "z") {
+        if (!desfazer) return;
+        evento.preventDefault();
+        desfazerRemocao();
+        return;
+      }
+      if (digitando) return;
+      if (evento.key === "Escape") {
+        setSelecionadoId(null);
+        return;
+      }
+      if ((evento.key === "Delete" || evento.key === "Backspace") && selecionadoId) {
+        evento.preventDefault();
+        if (parteId && bloco) removerParte(bloco.id, parteId);
+        else if (alvo?.kind === "bloco") removerSelecionado(alvo.bloco.id);
+      }
+    };
+    window.addEventListener("keydown", atalho);
+    return () => window.removeEventListener("keydown", atalho);
+  });
 
   return (
     <div className="grid min-h-screen grid-rows-[auto_auto_1fr] bg-paper">
@@ -204,17 +247,11 @@ export function EditorShell({
             ]}
           />
           <Tooltip
-            passo={paleta === "estrutura" ? "1" : "2"}
-            titulo={paleta === "estrutura" ? "Monte o esqueleto" : "Preencha as colunas"}
-            texto={
-              paleta === "estrutura"
-                ? "Seção segura colunas. Colunas recebem as peças."
-                : "Clique numa coluna vazia e depois numa peça."
-            }
+            passo="1"
+            titulo="Adicionar"
+            texto="Clique para colocar no fim do que está selecionado, ou arraste até o lugar exato. Na página, o + entre os blocos faz o mesmo."
           >
-            <p className="mt-3 text-xs uppercase tracking-[0.16em] text-muted">
-              {paleta === "estrutura" ? "1. Estrutura" : "2. Peças"}
-            </p>
+            <p className="mt-3 text-xs uppercase tracking-[0.16em] text-muted">Adicionar</p>
           </Tooltip>
           <p className="mt-1 text-xs text-muted">{dicaDestino}.</p>
           <div className="mt-3 space-y-2">
@@ -247,9 +284,10 @@ export function EditorShell({
             ))}
           </div>
           <div className="mt-6">
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-muted">Nesta página</p>
+            <p className="mb-1 text-xs uppercase tracking-[0.16em] text-muted">Nesta página</p>
+            <p className="mb-2 text-[11px] leading-4 text-muted">Clique num item para rolar até ele.</p>
             {arvore.length ? (
-              <ArvorePagina nos={arvore} selecionadoId={selecionadoId} onSelect={selecionar} />
+              <ArvorePagina nos={arvore} selecionadoId={alvoId} onSelect={selecionar} />
             ) : (
               <p className="text-xs text-muted">Ainda vazia. Comece por uma seção.</p>
             )}
@@ -265,9 +303,11 @@ export function EditorShell({
             if (!pagina.blocos.length) soltarNoCanvas(null, "depois");
           }}
         >
-          <Tooltip passo="3" titulo="Clique no que quer mudar" texto="Clique na seção, na coluna ou na peça. A árvore à esquerda também seleciona." lado="baixo">
+          <Tooltip passo="2" titulo="Clique no que quer mudar" texto="Passe o mouse para ver o nome de cada parte. Entre dois blocos aparece um + para adicionar ali." lado="baixo">
             <p className="mb-3 text-center text-xs text-muted">
-              {celular ? "Visual do celular — clique para editar" : "Sua página — clique na seção, na coluna ou na peça"}
+              {celular
+                ? "Visual do celular — clique para editar"
+                : "Clique no texto, na foto ou no botão. Entre os blocos aparece um + para adicionar"}
             </p>
           </Tooltip>
 
@@ -281,6 +321,9 @@ export function EditorShell({
                     onSelect={selecionar}
                     onEscolherImagem={onEscolherImagem}
                     onRemover={removerSelecionado}
+                    onRemoverParte={removerParte}
+                    onInserir={inserirEm}
+                    onAtualizar={atualizarBloco}
                     onDesfazer={desfazerRemocao}
                     temDesfazer={Boolean(desfazer)}
                   />
@@ -297,8 +340,8 @@ export function EditorShell({
               )}
             </div>
           ) : (
-            <div className="relative mx-auto flex min-h-[calc(100vh-11rem)] max-w-3xl flex-col">
-              <div className="flex min-h-full flex-1 flex-col overflow-hidden rounded-[2rem] border border-line shadow-xl">
+            <div className="relative mx-auto w-full max-w-3xl">
+              <div className="overflow-hidden rounded-[2rem] border border-line shadow-xl">
                 <PageRenderer
                   pagina={pagina}
                   selecionadoId={selecionadoId}
@@ -311,6 +354,9 @@ export function EditorShell({
                   onSoltarArrasto={soltarNoCanvas}
                   onEscolherImagem={onEscolherImagem}
                   onRemover={removerSelecionado}
+                  onRemoverParte={removerParte}
+                  onInserir={inserirEm}
+                  onAtualizar={atualizarBloco}
                   onDesfazer={desfazerRemocao}
                   temDesfazer={Boolean(desfazer)}
                 />
@@ -329,8 +375,8 @@ export function EditorShell({
         </section>
 
         <aside className="overflow-auto border-l border-line p-4">
-          <Tooltip passo="4" titulo="Edite aqui" texto="Texto, link, cor e foto do que está selecionado." lado="esquerda">
-            <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">4. Ajustes</p>
+          <Tooltip passo="3" titulo="Ajuste aqui" texto="Muda só o que está selecionado na página." lado="esquerda">
+            <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Ajustes</p>
           </Tooltip>
           {migalhas.length > 0 && (
             <p className="mb-3 flex flex-wrap items-center gap-1 text-[11px] text-muted">
@@ -341,6 +387,12 @@ export function EditorShell({
                   <button type="button" className="hover:text-ink" onClick={() => selecionar(item.id)}>{item.nome}</button>
                 </span>
               ))}
+              {parte && (
+                <span className="flex items-center gap-1">
+                  <span>›</span>
+                  <span className="font-medium text-ink">{parte.nome}</span>
+                </span>
+              )}
             </p>
           )}
           <Pills
@@ -358,6 +410,8 @@ export function EditorShell({
             <Inspector
               bloco={bloco}
               celula={alvo?.kind === "celula" ? alvo : null}
+              parteId={parteId}
+              onSelecionarParte={(id) => setSelecionadoId(id)}
               onChange={atualizarBloco}
               onAdicionarPeca={adicionarPeca}
               onEscolherImagem={onEscolherImagem}

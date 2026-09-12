@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Check, FormInput, Image, Layers3, Link2, MousePointerClick, Sparkles } from "lucide-react";
 import { Shell } from "../components/ui/Shell";
 import { Reveal } from "../components/ui/Reveal";
-import { IMG_S3, TEMPLATES } from "../editor/templates";
+import { HeroProduto } from "../components/ui/HeroProduto";
+import { TEMPLATES } from "../editor/templates";
 import { IconeLucide } from "../editor/icones";
 
 const PASSOS = [
@@ -34,17 +35,17 @@ export function LandingPage() {
 
   return (
     <Shell>
-      <section className="hero-glow overflow-hidden">
-        <div className="mx-auto max-w-5xl px-5 pb-8 pt-20 text-center md:pt-28">
+      <section className="hero-glow">
+        <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:pt-24">
           <Reveal>
-            <p className="text-sm font-medium text-accent">Construtor de uma página só</p>
-            <h1 className="font-display mx-auto mt-5 max-w-4xl text-5xl leading-[1.02] md:text-7xl">
-              Sua página, no ar hoje.
+            <p className="font-display text-4xl tracking-tight md:text-5xl">Single</p>
+            <h1 className="font-display mx-auto mt-4 max-w-3xl text-3xl leading-[1.08] text-ink-soft md:text-5xl">
+              Uma página no ar hoje — modelo, texto e publicar.
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-lg leading-7 text-ink-soft">
-              Escolha um modelo, ajuste o texto e publique. Sem tema, sem plugin, sem esperar o desenvolvedor.
+            <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted">
+              Editor visual: clique na foto, no título ou no botão e ajuste do lado. Sem tema, sem plugin.
             </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link to="/criar?modelos=1" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-accent px-6 text-sm font-medium text-white transition hover:bg-accent-strong hover:shadow-md">
                 Escolher um modelo <ArrowRight size={16} />
               </Link>
@@ -55,16 +56,8 @@ export function LandingPage() {
           </Reveal>
         </div>
 
-        <Reveal className="mx-auto max-w-4xl px-5 pb-24" delay={120}>
-          <div className="overflow-hidden rounded-[2rem] bg-ink shadow-[0_40px_80px_rgba(0,0,0,0.22)] ring-1 ring-white/10">
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-              <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-              <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-              <span className="ml-3 text-xs text-white/50">single.app / criar</span>
-            </div>
-            <img src={IMG_S3("links.jpg")} alt="Exemplo de página em seções" className="aspect-[16/9] w-full object-cover" />
-          </div>
+        <Reveal delay={100}>
+          <HeroProduto />
         </Reveal>
       </section>
 

@@ -15,6 +15,19 @@ export const TAMANHOS_TEXTO = [
   { id: "grande", nome: "Grande" },
 ];
 
+export const TAMANHOS_BOTAO = [
+  { id: "", nome: "Médio" },
+  { id: "pequeno", nome: "Pequeno" },
+  { id: "medio", nome: "Médio" },
+  { id: "grande", nome: "Grande" },
+];
+
+export function classeBotaoTamanho(tamanho) {
+  if (tamanho === "pequeno") return "min-h-9 px-4 text-xs";
+  if (tamanho === "grande") return "min-h-14 px-8 text-base";
+  return "min-h-11 px-6 text-sm";
+}
+
 export const ALINHAMENTOS_BLOCO = [
   { id: "", nome: "Seguir o tema" },
   { id: "esquerda", nome: "Esquerda" },

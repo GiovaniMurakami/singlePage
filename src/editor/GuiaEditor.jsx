@@ -1,8 +1,7 @@
 const PASSOS = [
-  { n: 1, nome: "Estrutura", dica: "Na esquerda: seção, depois colunas. A seção segura o que vem dentro." },
-  { n: 2, nome: "Peças", dica: "Clique numa coluna vazia e coloque texto, foto ou botão." },
-  { n: 3, nome: "Clique", dica: "No meio: clique na seção, na coluna ou na peça. A árvore à esquerda também seleciona." },
-  { n: 4, nome: "Ajustes", dica: "Na direita: texto, link, cor e foto do que está selecionado." },
+  { n: 1, nome: "Adicionar", dica: "Passe o mouse entre dois blocos e clique no + para colocar algo naquele lugar." },
+  { n: 2, nome: "Clicar", dica: "Clique direto no que quer mudar: a foto, o título ou o botão. O nome aparece ao passar o mouse." },
+  { n: 3, nome: "Ajustar", dica: "O painel da direita muda só o que está selecionado. Ctrl+Z desfaz, Delete apaga." },
 ];
 
 export function GuiaEditor({ passoAtivo = 1, onFechar }) {
@@ -15,7 +14,7 @@ export function GuiaEditor({ passoAtivo = 1, onFechar }) {
         return (
           <div
             key={passo.n}
-            className={`max-w-xs rounded-2xl px-3 py-1.5 text-xs leading-4 ${
+            className={`max-w-sm rounded-2xl px-3 py-1.5 text-xs leading-4 ${
               ativo ? "bg-accent text-white" : feito ? "bg-accent-soft text-accent" : "bg-paper text-muted"
             }`}
             title={passo.dica}
