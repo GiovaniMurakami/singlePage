@@ -7,7 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { criarPagina, excluirPagina, listarPaginas, mensagemErro } from "../services/backendApi";
 import { CATEGORIAS, TEMPLATES, slugify } from "../editor/templates";
 import { temRascunho } from "../editor/rascunho";
-import { getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
+import { rotuloUrlPublica, urlPublicaPagina } from "../constants/site";
 import { Seo } from "../components/Seo";
 
 export function DashboardPage() {
@@ -45,11 +45,11 @@ export function DashboardPage() {
   return (
     <Shell>
       <Seo title="Suas páginas" path="/app" robots="noindex,nofollow" />
-      <div className="mx-auto max-w-5xl px-5 py-12">
+      <div className="mx-auto max-w-5xl px-5 py-8 md:py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-muted">Plano {usuario?.limites?.nome || "Free"}</p>
-            <h1 className="font-display text-5xl">Suas páginas</h1>
+            <h1 className="font-display text-3xl md:text-5xl">Suas páginas</h1>
             {usuario?.limites?.anuncios && (
               <p className="mt-2 max-w-md text-sm text-ink-soft">No Free você publica 1 página. Ela leva anúncios. <Link to="/precos" className="text-accent">Tirar anúncios</Link></p>
             )}
@@ -81,7 +81,7 @@ export function DashboardPage() {
               ))}
             </optgroup>
           </select>
-          <button disabled={criar.isPending} className="rounded-full bg-ink px-5 py-3 text-sm text-paper">
+          <button disabled={criar.isPending} className="min-h-12 rounded-full bg-ink px-5 py-3 text-sm text-paper">
             {criar.isPending ? "Criando…" : "Nova página"}
           </button>
         </form>
@@ -92,16 +92,16 @@ export function DashboardPage() {
               <div>
                 <Link to={`/app/${pagina.id}`} className="font-medium">{pagina.titulo}</Link>
                 <p className="text-sm text-muted">
-                  {getSiteBaseUrl().replace(/^https?:\/\//, "")}/{pagina.slug} · {pagina.publicada ? "Publicada" : "Rascunho"}
+                  {rotuloUrlPublica(pagina.slug)} · {pagina.publicada ? "Publicada" : "Rascunho"}
                 </p>
               </div>
-              <div className="flex gap-3 text-sm">
-                <Link to={`/app/${pagina.id}`} className="text-accent">Editar</Link>
-                <Link to={`/app/${pagina.id}/painel`}>Painel</Link>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                <Link to={`/app/${pagina.id}`} className="inline-flex min-h-10 items-center text-accent">Editar</Link>
+                <Link to={`/app/${pagina.id}/painel`} className="inline-flex min-h-10 items-center">Painel</Link>
                 {pagina.publicada && (
-                  <a href={urlPublicaPagina(pagina.slug)} target="_blank" rel="noreferrer">Ver</a>
+                  <a href={urlPublicaPagina(pagina.slug)} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center">Ver</a>
                 )}
-                <button type="button" className="text-danger" onClick={() => excluir.mutate(pagina.id)}>Excluir</button>
+                <button type="button" className="inline-flex min-h-10 items-center text-danger" onClick={() => excluir.mutate(pagina.id)}>Excluir</button>
               </div>
             </article>
           ))}

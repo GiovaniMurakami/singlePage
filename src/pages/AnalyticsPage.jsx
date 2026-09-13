@@ -4,7 +4,7 @@ import { MousePointerClick, Eye, Send, Users, TrendingUp, Clock } from "lucide-r
 import { Shell } from "../components/ui/Shell";
 import { Seo } from "../components/Seo";
 import { buscarAnalyticsPagina } from "../services/backendApi";
-import { getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
+import { rotuloUrlPublica, urlPublicaPagina } from "../constants/site";
 
 function formatar(n) {
   return new Intl.NumberFormat("pt-BR").format(n || 0);
@@ -112,7 +112,7 @@ export function AnalyticsPage() {
   return (
     <Shell>
       <Seo title={pagina ? `Painel · ${pagina.titulo}` : "Painel"} path={`/app/${paginaId}/painel`} robots="noindex,nofollow" />
-      <div className="mx-auto max-w-5xl px-5 py-12">
+      <div className="mx-auto max-w-5xl px-5 py-8 md:py-12">
         <p className="text-sm text-muted">
           <Link to="/app" className="hover:text-ink">Páginas</Link>
           {pagina && (
@@ -124,10 +124,10 @@ export function AnalyticsPage() {
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-5xl">Painel</h1>
+            <h1 className="font-display text-3xl md:text-5xl">Painel</h1>
             <p className="mt-2 text-sm text-ink-soft">
               {pagina
-                ? `${getSiteBaseUrl().replace(/^https?:\/\//, "")}/${pagina.slug} · ${pagina.publicada ? "Publicada" : "Rascunho"}`
+                ? `${rotuloUrlPublica(pagina.slug)} · ${pagina.publicada ? "Publicada" : "Rascunho"}`
                 : "Acessos, cliques e o que mais a página recebeu."}
             </p>
           </div>

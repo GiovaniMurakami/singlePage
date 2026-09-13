@@ -34,8 +34,8 @@ export function ContaPage() {
   return (
     <Shell>
       <Seo title="Conta" path="/conta" robots="noindex,nofollow" />
-      <div className="mx-auto max-w-xl px-5 py-16">
-        <h1 className="font-display text-5xl">Conta</h1>
+      <div className="mx-auto max-w-xl px-5 py-10 md:py-16">
+        <h1 className="font-display text-3xl md:text-5xl">Conta</h1>
         {params.get("checkout") === "sucesso" && (
           <p className="mt-4 rounded-xl bg-accent-soft px-4 py-3 text-sm">Assinatura confirmada. O plano atualiza em instantes via webhook.</p>
         )}
@@ -47,7 +47,7 @@ export function ContaPage() {
         )}
         <dl className="mt-8 space-y-3 rounded-3xl border border-line bg-paper-2 p-6 text-sm">
           <div><dt className="text-muted">Nome</dt><dd>{usuario?.nome}</dd></div>
-          <div><dt className="text-muted">E-mail</dt><dd>{usuario?.email}{usuario?.emailVerificado ? "" : " · não confirmado"}</dd></div>
+          <div><dt className="text-muted">E-mail</dt><dd className="break-all">{usuario?.email}{usuario?.emailVerificado ? "" : " · não confirmado"}</dd></div>
           <div><dt className="text-muted">Plano</dt><dd>{usuario?.limites?.nome} · {usuario?.statusAssinatura}</dd></div>
         </dl>
         <button type="button" onClick={() => portal.mutate()} className="mt-6 rounded-full border border-line px-5 py-3 text-sm">

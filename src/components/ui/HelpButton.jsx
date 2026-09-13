@@ -3,11 +3,12 @@ import { useLocation } from "react-router-dom";
 import { HelpCircle, X } from "lucide-react";
 import { ASSUNTOS_AJUDA } from "../../constants/suporte";
 import { enviarPedidoAjuda, mensagemErro } from "../../services/backendApi";
-import { enderecoReservado } from "../../constants/site";
+import { enderecoReservado, slugDoHost } from "../../constants/site";
 
 const campo = "w-full rounded-2xl border border-line bg-paper px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:shadow-[0_0_0_4px_var(--color-accent-soft)]";
 
 function paginaPublicada(pathname) {
+  if (slugDoHost()) return true;
   if (pathname.startsWith("/p/")) return true;
   const primeiro = pathname.split("/").filter(Boolean)[0] || "";
   return Boolean(primeiro) && !enderecoReservado(primeiro);
@@ -29,7 +30,8 @@ export function HelpButton() {
     mensagem: "",
   });
 
-  if (paginaPublicada(pathname)) return null;
+  const noEditor = pathname === "/criar" || /^\/app\/[^/]+$/.test(pathname);
+  if (paginaPublicada(pathname) || noEditor) return null;
 
   const set = (campoNome, valor) => setForm((atual) => ({ ...atual, [campoNome]: valor }));
 
@@ -56,17 +58,19 @@ export function HelpButton() {
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-4 text-sm text-paper shadow-[0_12px_40px_rgba(0,0,0,0.18)] transition hover:scale-[1.03] active:scale-[0.98]"
+        aria-label="Preciso de ajuda"
+        className="fixed right-[max(1.25rem,env(safe-area-inset-right))] z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-3 text-sm text-paper shadow-[0_12px_40px_rgba(0,0,0,0.18)] transition hover:scale-[1.03] active:scale-[0.98] sm:px-4"
+        style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
       >
         <HelpCircle size={18} />
-        Preciso de ajuda
+        <span className="hidden sm:inline">Preciso de ajuda</span>
       </button>
 
       {aberto && (
         <div className="fixed inset-0 z-50 flex justify-end bg-ink/30 backdrop-blur-sm" role="dialog" aria-modal="true">
           <form
             onSubmit={enviar}
-            className="flex h-full w-full max-w-md flex-col bg-paper-2 shadow-[-20px_0_60px_rgba(0,0,0,0.12)]"
+            className="flex h-full w-full max-w-md flex-col bg-paper-2 pt-[env(safe-area-inset-top)] shadow-[-20px_0_60px_rgba(0,0,0,0.12)]"
           >
             <header className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
               <div>
@@ -122,7 +126,7 @@ export function HelpButton() {
               )}
             </div>
 
-            <footer className="border-t border-line px-6 py-4">
+            <footer className="border-t border-line px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button type="submit" disabled={enviando} className="w-full rounded-full bg-accent py-3 text-sm font-medium text-white transition hover:bg-accent-strong disabled:opacity-60">
                 {enviando ? "Enviando…" : "Enviar para o Giovani"}
               </button>

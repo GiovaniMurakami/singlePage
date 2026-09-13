@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Monitor, Plus, Smartphone } from "lucide-react";
+import { AppWindow, Layers, Monitor, Plus, SlidersHorizontal, Smartphone } from "lucide-react";
 import { Pills } from "./ajustesUI";
 import { seletorCorAberto } from "./seletorCor";
 import { PageRenderer } from "./PageRenderer";
@@ -8,7 +8,7 @@ import { Inspector, ThemeInspector } from "./Inspector";
 import { GuiaEditor } from "./GuiaEditor";
 import { Tooltip } from "./Tooltip";
 import { IconeLucide } from "./icones";
-import { TIPOS_ESTRUTURA, TIPOS_PECA, blocoPadrao, ehTipoEstrutura } from "./templates";
+import { TIPOS_ESTRUTURA, TIPOS_PECA, blocoPadrao, ehTipoEstrutura, nomeDoTipo } from "./templates";
 import {
   acharBloco,
   caminhoDoAlvo,
@@ -80,6 +80,8 @@ export function EditorShell({
   const [arrasto, setArrasto] = useState(null);
   const [guiaAberta, setGuiaAberta] = useState(() => window.localStorage.getItem("single.guia-editor") !== "oculto");
   const [layoutsBlocoId, setLayoutsBlocoId] = useState(null);
+  const [painel, setPainel] = useState("pagina");
+  const [largura, setLargura] = useState(() => (typeof window === "undefined" ? 1280 : window.innerWidth));
   const historicoRef = useRef([]);
 
   const { blocoId: alvoId, parteId } = separarAlvo(selecionadoId);
@@ -92,7 +94,8 @@ export function EditorShell({
   const tiposPaleta = paleta === "estrutura" ? TIPOS_ESTRUTURA : TIPOS_PECA;
   const dicaDestino = rotuloDestino(pagina.blocos, alvoId, paleta === "estrutura" ? "grade" : "texto");
   const passoAtivo = !selecionadoId ? 1 : parteId ? 3 : 2;
-  const celular = visao === "celular";
+  const telaEstreita = largura < 1024;
+  const celular = !telaEstreita && visao === "celular";
 
   const registrarHistorico = () => {
     historicoRef.current.push({
@@ -141,6 +144,7 @@ export function EditorShell({
     registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
+    setPainel("pagina");
     abrirLayoutsSeCapa(tipo, novo.id);
   };
 
@@ -199,11 +203,18 @@ export function EditorShell({
 
   const selecionarNaBarra = (id) => {
     selecionar(id);
+    setPainel("pagina");
     const { blocoId, parteId } = separarAlvo(id);
     if (parteId) return;
     const encontrado = acharBloco(pagina.blocos, blocoId);
     if (encontrado?.tipo === "capa") setLayoutsBlocoId(blocoId);
   };
+
+  useEffect(() => {
+    const onResize = () => setLargura(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     const atalho = (evento) => {
@@ -233,30 +244,36 @@ export function EditorShell({
     return () => window.removeEventListener("keydown", atalho);
   });
 
+  const rotuloSelecao = parte?.nome || (bloco ? nomeDoTipo(bloco.tipo) : "página");
+
   return (
-    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-paper">
-      <header className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper-2/80 px-4 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <Link to={voltarPara} className="text-sm text-muted">{voltarLabel}</Link>
-          <input
-            className="rounded-lg border border-line px-2 py-1 text-sm"
-            value={pagina.titulo}
-            onChange={(e) => onChange({ ...pagina, titulo: e.target.value })}
-            aria-label="Título da página"
-          />
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)]">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-line bg-paper-2/80 px-3 py-2.5 backdrop-blur-xl sm:px-4 sm:py-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <Link to={voltarPara} className="shrink-0 text-sm text-muted">{voltarLabel}</Link>
+            <input
+              className="min-w-0 flex-1 rounded-lg border border-line px-2 py-1.5 text-sm sm:max-w-xs"
+              value={pagina.titulo}
+              onChange={(e) => onChange({ ...pagina, titulo: e.target.value })}
+              aria-label="Título da página"
+            />
+          </div>
+          <div className="hidden lg:block">
+            <Pills
+              valor={visao}
+              onChange={setVisao}
+              className="min-w-[13rem]"
+              opcoes={[
+                { id: "desktop", nome: "Desktop", icone: <Monitor size={14} /> },
+                { id: "celular", nome: "Celular", icone: <Smartphone size={14} /> },
+              ]}
+            />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Pills
-            valor={visao}
-            onChange={setVisao}
-            className="min-w-[13rem]"
-            opcoes={[
-              { id: "desktop", nome: "Desktop", icone: <Monitor size={14} /> },
-              { id: "celular", nome: "Celular", icone: <Smartphone size={14} /> },
-            ]}
-          />
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {onTrocarModelo && (
-            <button type="button" className="rounded-full border border-line px-4 py-2 text-sm" onClick={onTrocarModelo}>
+            <button type="button" className="shrink-0 rounded-full border border-line px-4 py-2 text-sm" onClick={onTrocarModelo}>
               Trocar modelo
             </button>
           )}
@@ -276,8 +293,8 @@ export function EditorShell({
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[16.5rem_minmax(0,1fr)_20rem] lg:overflow-hidden">
-        <aside className="min-w-0 border-r border-line p-4 lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto">
+      <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[16.5rem_minmax(0,1fr)_20rem]">
+        <aside className={`min-h-0 min-w-0 overflow-x-hidden overflow-y-auto border-r border-line p-4 ${painel === "blocos" ? "block" : "hidden"} lg:block`}>
           <Pills
             valor={paleta}
             onChange={setPaleta}
@@ -336,7 +353,7 @@ export function EditorShell({
         </aside>
 
         <section
-          className="flex h-full min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6"
+          className={`h-full min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-3 sm:p-6 ${painel === "pagina" ? "flex" : "hidden"} lg:flex`}
           onClick={(evento) => {
             const alvo = evento.target;
             if (seletorCorAberto()) return;
@@ -361,9 +378,9 @@ export function EditorShell({
           </Tooltip>
 
           {celular ? (
-            <div className="relative mx-auto w-[360px]">
+            <div className="relative mx-auto w-full max-w-[360px]">
               <div className="rounded-[2.4rem] p-[10px] ring-1 ring-black/10" style={cssFundo(pagina.tema || {})}>
-                <div className="preview-celular h-[680px] overflow-auto rounded-[1.9rem]" style={cssFundo(pagina.tema || {})}>
+                <div className="preview-celular h-[min(680px,70dvh)] overflow-auto rounded-[1.9rem]" style={cssFundo(pagina.tema || {})}>
                   <PageRenderer
                     pagina={pagina}
                     selecionadoId={selecionadoId}
@@ -403,7 +420,7 @@ export function EditorShell({
           )}
         </section>
 
-        <aside className="border-l border-line p-4 lg:min-h-0 lg:overflow-y-auto">
+        <aside className={`min-h-0 overflow-y-auto border-l border-line p-4 ${painel === "ajustes" ? "block" : "hidden"} lg:block`}>
           <Tooltip passo="3" titulo="Ajuste aqui" texto="Muda só o que está selecionado na página." lado="esquerda">
             <p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Ajustes</p>
           </Tooltip>
@@ -449,6 +466,45 @@ export function EditorShell({
           )}
         </aside>
       </div>
+
+      {selecionadoId && painel === "pagina" && (
+        <div className="shrink-0 border-t border-line bg-paper-2 px-3 py-2 lg:hidden">
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center justify-center rounded-full bg-ink px-4 text-sm text-paper"
+            onClick={() => setPainel("ajustes")}
+          >
+            Ajustar {rotuloSelecao}
+          </button>
+        </div>
+      )}
+
+      <nav className="grid shrink-0 grid-cols-3 border-t border-line bg-paper-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] lg:hidden" aria-label="Painéis do editor">
+        {[
+          { id: "blocos", nome: "Peças", icone: Layers },
+          { id: "pagina", nome: "Página", icone: AppWindow },
+          { id: "ajustes", nome: "Ajustes", icone: SlidersHorizontal },
+        ].map((item) => {
+          const Icone = item.icone;
+          const ativo = painel === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] ${ativo ? "text-ink" : "text-muted"}`}
+              onClick={() => setPainel(item.id)}
+            >
+              <span className="relative">
+                <Icone size={18} />
+                {item.id === "ajustes" && selecionadoId && !ativo && (
+                  <span className="absolute -right-1 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" />
+                )}
+              </span>
+              {item.nome}
+            </button>
+          );
+        })}
+      </nav>
       {layoutsBloco && (
         <LayoutPickerModal
           tipo={layoutsBloco.tipo}

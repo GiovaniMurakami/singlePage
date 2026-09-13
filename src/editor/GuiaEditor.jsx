@@ -6,7 +6,7 @@ const PASSOS = [
 
 export function GuiaEditor({ passoAtivo = 1, onFechar }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-line bg-paper-2 px-4 py-2.5">
+    <div className="hidden flex-wrap items-center gap-2 border-b border-line bg-paper-2 px-4 py-2.5 sm:flex">
       <p className="mr-2 text-xs font-medium text-muted">Como usar</p>
       {PASSOS.map((passo) => {
         const ativo = passo.n === passoAtivo;

@@ -74,9 +74,9 @@ export function LandingPage() {
         jsonLd={jsonLd}
       />
       <section className="hero-glow">
-        <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:pt-24">
+        <div className="mx-auto max-w-5xl px-5 pb-10 pt-12 text-center md:pt-24">
           <Reveal>
-            <p className="font-display text-4xl tracking-tight md:text-5xl">Single</p>
+            <p className="font-display text-3xl tracking-tight md:text-5xl">Single</p>
             <h1 className="font-display mx-auto mt-4 max-w-3xl text-3xl leading-[1.08] text-ink-soft md:text-5xl">
               Uma página no ar hoje — modelo, texto e publicar.
             </h1>
@@ -99,10 +99,10 @@ export function LandingPage() {
         </Reveal>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 pb-20">
+      <section className="mx-auto max-w-5xl px-5 pb-14 md:pb-20">
         <Reveal>
           <p className="text-sm font-medium text-accent">Como funciona</p>
-          <h2 className="font-display mt-2 text-4xl md:text-5xl">Três gestos. Página pronta.</h2>
+          <h2 className="font-display mt-2 text-3xl md:text-5xl">Três gestos. Página pronta.</h2>
         </Reveal>
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {PASSOS.map(([titulo, texto], index) => (
@@ -117,11 +117,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-paper-2 py-20">
+      <section className="bg-paper-2 py-14 md:py-20">
         <div className="mx-auto max-w-5xl px-5">
           <Reveal>
             <p className="text-sm font-medium text-accent">Comece por um modelo</p>
-            <h2 className="font-display mt-2 text-4xl md:text-5xl">O mesmo tipo de página que você já conhece.</h2>
+            <h2 className="font-display mt-2 text-3xl md:text-5xl">O mesmo tipo de página que você já conhece.</h2>
           </Reveal>
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {modelos.map((template, index) => (
@@ -139,10 +139,10 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 py-20">
+      <section className="mx-auto max-w-5xl px-5 py-14 md:py-20">
         <Reveal>
           <p className="text-sm font-medium text-accent">O editor</p>
-          <h2 className="font-display mt-2 max-w-2xl text-4xl md:text-5xl">Painel lateral. Ícone, cor, fundo, animação.</h2>
+          <h2 className="font-display mt-2 max-w-2xl text-3xl md:text-5xl">Painel lateral. Ícone, cor, fundo, animação.</h2>
         </Reveal>
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {RECURSOS.map(([Icone, titulo, texto], index) => (
@@ -157,7 +157,7 @@ export function LandingPage() {
             </Reveal>
           ))}
         </div>
-        <Reveal className="mt-10 flex justify-center gap-3" delay={80}>
+        <Reveal className="mt-10 flex flex-wrap justify-center gap-3" delay={80}>
           {["Instagram", "Mail", "Music", "Camera", "Sparkles"].map((nome, index) => (
             <span
               key={nome}
@@ -178,10 +178,10 @@ export function LandingPage() {
       </section>
 
       <section className="bg-ink text-paper-2">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 px-5 py-20 md:grid-cols-2">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 px-5 py-14 md:grid-cols-2 md:py-20">
           <Reveal>
             <p className="text-sm text-white/60">Planos</p>
-            <h2 className="font-display mt-2 text-4xl text-white md:text-5xl">Free para publicar. Sob medida quando virar um site.</h2>
+            <h2 className="font-display mt-2 text-3xl text-white md:text-5xl">Free para publicar. Sob medida quando virar um site.</h2>
             <p className="mt-4 text-sm leading-6 text-white/70">
               Uma página no Free, com anúncios. Pro e Ultra tiram anúncio e abrem mais páginas. Precisa de backend e features próprias? A gente marca uma reunião.
             </p>
@@ -202,9 +202,9 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-5 py-20">
+      <section className="mx-auto max-w-3xl px-5 py-14 md:py-20">
         <Reveal>
-          <h2 className="font-display text-center text-4xl">Perguntas que a gente já ouviu</h2>
+          <h2 className="font-display text-center text-3xl md:text-4xl">Perguntas que a gente já ouviu</h2>
         </Reveal>
         <div className="mt-10 space-y-3">
           {FAQ.map(([pergunta, resposta], index) => (
@@ -220,8 +220,8 @@ export function LandingPage() {
 
       <section className="px-5 pb-28">
         <Reveal>
-          <div className="mx-auto max-w-4xl rounded-[2rem] bg-paper-2 px-8 py-14 text-center shadow-sm ring-1 ring-line">
-            <h2 className="font-display text-4xl md:text-5xl">Começa pelo modelo. O resto é ajuste.</h2>
+          <div className="mx-auto max-w-4xl rounded-[2rem] bg-paper-2 px-5 py-10 text-center shadow-sm ring-1 ring-line sm:px-8 sm:py-14">
+            <h2 className="font-display text-3xl md:text-5xl">Começa pelo modelo. O resto é ajuste.</h2>
             <p className="mx-auto mt-4 max-w-lg text-ink-soft">Abre o editor, escolhe o tipo de página e publica quando estiver bom o suficiente.</p>
             <Link to="/criar?modelos=1" className="mt-8 inline-flex min-h-12 items-center rounded-full bg-accent px-6 text-sm font-medium text-white transition hover:bg-accent-strong hover:shadow-md">
               Criar minha página

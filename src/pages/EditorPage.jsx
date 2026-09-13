@@ -6,7 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { EditorShell } from "../editor/EditorShell";
 import { aplicarImagemNoBloco, slugify } from "../editor/templates";
 import { substituirBloco } from "../editor/blocosArvore";
-import { enderecoReservado, getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
+import { enderecoReservado, partesEnderecoPublico, urlPublicaPagina } from "../constants/site";
 import { Seo } from "../components/Seo";
 
 export function EditorPage() {
@@ -84,7 +84,7 @@ export function EditorPage() {
 
   const endereco = slugify(pagina.slug || pagina.titulo);
   const linkPublico = urlPublicaPagina(endereco);
-  const base = getSiteBaseUrl().replace(/^https?:\/\//, "");
+  const partes = partesEnderecoPublico(pagina.slug);
 
   return (
     <>
@@ -105,10 +105,10 @@ export function EditorPage() {
       onEscolherImagem={onEscolherImagem}
       acoes={(
         <>
-          <label className="flex min-w-[14rem] flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-[0.14em] text-muted">Endereço no domínio</span>
+          <label className="flex w-full min-w-0 flex-col gap-0.5 sm:w-auto sm:min-w-[16rem]">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-muted">Endereço público</span>
             <span className="flex items-center gap-0 rounded-lg border border-line bg-paper-2 px-2 py-1 text-sm">
-              <span className="shrink-0 text-muted">{base}/</span>
+              {partes.prefixo ? <span className="shrink-0 text-muted">{partes.prefixo}</span> : null}
               <input
                 className="min-w-0 flex-1 bg-transparent outline-none"
                 value={pagina.slug}
@@ -116,22 +116,23 @@ export function EditorPage() {
                   enderecoManual.current = true;
                   setPagina({ ...pagina, slug: slugify(e.target.value) });
                 }}
-                aria-label="Endereço da página no domínio"
+                aria-label="Endereço público da página"
                 placeholder="nome-da-pagina"
               />
+              {partes.sufixo ? <span className="shrink-0 text-muted">{partes.sufixo}</span> : null}
             </span>
           </label>
-          <Link to={`/app/${paginaId}/painel`} className="rounded-full px-4 py-2 text-sm text-accent">
+          <Link to={`/app/${paginaId}/painel`} className="shrink-0 rounded-full px-4 py-2 text-sm text-accent">
             Painel
           </Link>
-          <button type="button" onClick={() => salvar.mutate()} className="rounded-full border border-line px-4 py-2 text-sm">
+          <button type="button" onClick={() => salvar.mutate()} className="shrink-0 rounded-full border border-line px-4 py-2 text-sm">
             {salvar.isPending ? "Salvando…" : "Salvar rascunho"}
           </button>
-          <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="rounded-full bg-ink px-4 py-2 text-sm text-paper">
+          <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-paper">
             {pagina.publicada ? "Despublicar" : "Publicar"}
           </button>
           {pagina.publicada && (
-            <a href={linkPublico} target="_blank" rel="noreferrer" className="rounded-full px-4 py-2 text-sm text-accent">
+            <a href={linkPublico} target="_blank" rel="noreferrer" className="shrink-0 rounded-full px-4 py-2 text-sm text-accent">
               Ver
             </a>
           )}

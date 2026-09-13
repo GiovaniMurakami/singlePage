@@ -35,10 +35,10 @@ export const ALINHAMENTOS_BLOCO = [
 ];
 
 const TITULO = {
-  pequeno: "text-2xl font-semibold leading-snug",
-  medio: "text-3xl font-semibold leading-snug",
-  grande: "text-5xl font-semibold leading-tight md:text-6xl",
-  enorme: "text-6xl font-semibold leading-none md:text-7xl",
+  pequeno: "text-xl font-semibold leading-snug sm:text-2xl",
+  medio: "text-2xl font-semibold leading-snug sm:text-3xl",
+  grande: "text-3xl font-semibold leading-tight sm:text-5xl md:text-6xl",
+  enorme: "text-4xl font-semibold leading-none sm:text-6xl md:text-7xl",
 };
 
 const TEXTO = {

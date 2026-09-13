@@ -23,6 +23,11 @@ html, body, #root {
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+#root {
+  overflow-x: clip;
 }
 
 body {
@@ -418,6 +423,11 @@ button, input, textarea, select {
 }
 
 @media (max-width: 860px) {
+  .hero-produto {
+    overflow: hidden;
+    padding-bottom: 3rem;
+  }
+
   .hero-produto-corpo {
     grid-template-columns: 1fr;
   }
@@ -646,8 +656,8 @@ button, input, textarea, select {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 999px;
   color: var(--color-muted);
   background: var(--color-paper);
@@ -748,6 +758,24 @@ button, input, textarea, select {
 .ponto-insercao:focus-within,
 .ponto-insercao[data-aberto="true"] {
   opacity: 1;
+}
+
+@media (hover: none) {
+  .ponto-insercao {
+    opacity: 0.7;
+    height: 1.85rem;
+  }
+
+  .ponto-insercao-botao {
+    padding: 0.35rem 0.75rem;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-pagina-canvas] [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .ponto-insercao::before {
@@ -969,7 +997,18 @@ button, input, textarea, select {
   bottom: 0;
   width: 100%;
   padding: 0.85rem 1rem;
+  padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
   border-top: 1px solid #e5e7eb;
+}
+
+.bloco-grade {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .bloco-grade {
+    grid-template-columns: var(--grade-template, 1fr 1fr);
+  }
 }
 
 .anuncio-casa {

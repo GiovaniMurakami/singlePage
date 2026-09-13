@@ -13,7 +13,7 @@ const BOTAO_ATUAL = "flex min-h-12 w-full items-center justify-center rounded-fu
 
 const PLANOS_FALLBACK = [
   { codigo: "free", nome: "Free", descricao: "Uma página. Anúncios na página publicada.", precoCentavos: 0, precoMensalCentavos: 0, periodo: "mes", paginasMaximas: 1, removeMarca: false, dominioProprio: false, anuncios: true },
-  { codigo: "pro", nome: "Pro", descricao: "Até 10 páginas no domínio singlepage.com.br, sem marca, sem anúncios e com formulários ilimitados.", precoCentavos: 990, precoMensalCentavos: 990, periodo: "mes", paginasMaximas: 10, removeMarca: true, dominioProprio: false, anuncios: false, destaque: true },
+  { codigo: "pro", nome: "Pro", descricao: "Até 10 páginas em nome.singlepage.com.br, sem marca, sem anúncios e com formulários ilimitados.", precoCentavos: 990, precoMensalCentavos: 990, periodo: "mes", paginasMaximas: 10, removeMarca: true, dominioProprio: false, anuncios: false, destaque: true },
   { codigo: "ultra", nome: "Ultra", descricao: "Até 50 páginas, domínio personalizável e prioridade no suporte.", precoCentavos: 4990, precoMensalCentavos: 4990, periodo: "mes", paginasMaximas: 50, removeMarca: true, dominioProprio: true, anuncios: false },
 ];
 
@@ -69,8 +69,8 @@ export function PrecosPage() {
         description="Planos Free, Pro e Ultra para publicar sua página. Ou Sob medida para um site completo com backend."
         path="/precos"
       />
-      <div className="hero-glow mx-auto max-w-6xl px-5 py-20">
-        <h1 className="font-display text-center text-5xl md:text-6xl">Simples de começar. Barato de crescer.</h1>
+      <div className="hero-glow mx-auto max-w-6xl px-5 py-12 md:py-20">
+        <h1 className="font-display text-center text-3xl md:text-6xl">Simples de começar. Barato de crescer.</h1>
         <p className="mx-auto mt-4 max-w-xl text-center text-ink-soft">
           Free, Pro e Ultra para a página única. Se o projeto pediu site completo, a gente senta e desenha juntos.
         </p>
@@ -93,7 +93,7 @@ export function PrecosPage() {
                       <li>{plano.paginasMaximas} página(s)</li>
                       <li>{plano.removeMarca ? "Sem marca Single" : "Com marca Single"}</li>
                       <li>{plano.anuncios ? "Anúncios na página publicada" : "Sem anúncios"}</li>
-                      <li>{plano.dominioProprio ? "Domínio personalizável" : "Endereço em singlepage.com.br"}</li>
+                      <li>{plano.dominioProprio ? "Domínio personalizável" : "nome.singlepage.com.br"}</li>
                     </>
                   )}
                 </ul>

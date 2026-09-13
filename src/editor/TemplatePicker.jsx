@@ -31,11 +31,11 @@ export function TemplatePicker({ onEscolher, onCancelar, titulo = "Escolha um po
 
   return (
     <div className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-6xl px-5 py-10">
+      <div className="mx-auto max-w-6xl px-5 py-8 md:py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted">Modelos</p>
-            <h1 className="font-display mt-2 text-5xl">{titulo}</h1>
+            <h1 className="font-display mt-2 text-3xl md:text-5xl">{titulo}</h1>
             <p className="mt-3 max-w-xl text-sm text-ink-soft">
               O recorte do card é a própria página. Demo só entra quando há o que rolar.
             </p>
@@ -97,9 +97,9 @@ export function TemplatePicker({ onEscolher, onCancelar, titulo = "Escolha um po
       </div>
 
       {demo && paginaDemo && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/75 p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/75 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true">
           <div
-            className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.6rem] shadow-2xl"
+            className="flex h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.6rem] shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-[1.6rem]"
             style={{ ...cssFundo(paginaDemo.tema), color: paginaDemo.tema.texto }}
           >
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-5 py-3">

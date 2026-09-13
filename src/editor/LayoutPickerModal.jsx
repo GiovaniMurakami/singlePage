@@ -37,20 +37,20 @@ export function LayoutPickerModal({ tipo, atualId, propsBloco, tema, onEscolher,
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/70 p-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/70 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={titulo}
       onClick={onFechar}
     >
       <div
-        className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[1.6rem] bg-paper shadow-2xl"
+        className="flex h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[1.6rem] bg-paper shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-[1.6rem]"
         onClick={(evento) => evento.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted">Exemplos</p>
-            <h2 className="font-display mt-1 text-3xl">{titulo}</h2>
+            <h2 className="font-display mt-1 text-2xl sm:text-3xl">{titulo}</h2>
           </div>
           <button type="button" className="rounded-full px-4 py-2 text-sm text-muted hover:text-ink" onClick={onFechar}>
             Fechar

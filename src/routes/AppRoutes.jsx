@@ -9,8 +9,10 @@ import { EditorPage } from "../pages/EditorPage";
 import { PrecosPage } from "../pages/PrecosPage";
 import { ContaPage } from "../pages/ContaPage";
 import { PublicPage } from "../pages/PublicPage";
+import { RedirectPublica } from "../pages/RedirectPublica";
 import { GuestEditorPage } from "../pages/GuestEditorPage";
 import { AnalyticsPage } from "../pages/AnalyticsPage";
+import { slugDoHost } from "../constants/site";
 
 function Protected({ children }) {
   const { autenticado, ready } = useAuth();
@@ -20,6 +22,11 @@ function Protected({ children }) {
 }
 
 export function AppRoutes() {
+  const slugHost = slugDoHost();
+  if (slugHost) {
+    return <PublicPage slugForcado={slugHost} />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -30,13 +37,13 @@ export function AppRoutes() {
       <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
       <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/precos" element={<PrecosPage />} />
-      <Route path="/p/:slug" element={<PublicPage />} />
+      <Route path="/p/:slug" element={<RedirectPublica />} />
       <Route path="/app" element={<Protected><DashboardPage /></Protected>} />
       <Route path="/app/:paginaId/painel" element={<Protected><AnalyticsPage /></Protected>} />
       <Route path="/app/:paginaId" element={<Protected><EditorPage /></Protected>} />
       <Route path="/conta" element={<Protected><ContaPage /></Protected>} />
-      {/* Endereço público: singlepage.com.br/{nome-da-pagina} */}
-      <Route path="/:slug" element={<PublicPage />} />
+      {/* Path antigo: em produção redireciona para nome.singlepage.com.br */}
+      <Route path="/:slug" element={<RedirectPublica />} />
     </Routes>
   );
 }

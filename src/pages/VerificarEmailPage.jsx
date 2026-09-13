@@ -26,8 +26,8 @@ export function VerificarEmailPage() {
   return (
     <Shell>
       <Seo title="Confirmar e-mail" path="/verificar-email" robots="noindex,nofollow" />
-      <div className="mx-auto mt-20 max-w-md rounded-[2rem] bg-paper-2 p-8 shadow-sm ring-1 ring-line">
-        <h1 className="font-display text-4xl">Confirmar e-mail</h1>
+      <div className="mx-auto mt-8 max-w-md rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mt-20 sm:p-8">
+        <h1 className="font-display text-3xl md:text-4xl">Confirmar e-mail</h1>
         {estado === "enviando" && <p className="mt-4 text-sm text-ink-soft">Confirmando…</p>}
         {estado === "ok" && <p className="mt-4 text-sm">E-mail confirmado. Já pode usar a conta normalmente.</p>}
         {estado === "faltando" && <p className="mt-4 text-sm text-ink-soft">Abra o link que chegou no seu e-mail.</p>}
