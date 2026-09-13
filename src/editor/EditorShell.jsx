@@ -336,7 +336,7 @@ export function EditorShell({
         </aside>
 
         <section
-          className="flex min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6 lg:min-h-0"
+          className="flex h-full min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6"
           onClick={(evento) => {
             const alvo = evento.target;
             if (seletorCorAberto()) return;
@@ -379,8 +379,8 @@ export function EditorShell({
               </div>
             </div>
           ) : (
-            <div className="relative mx-auto w-full max-w-3xl">
-              <div className="overflow-visible rounded-[2rem] border border-line">
+            <div className="relative mx-auto flex min-h-full w-full max-w-3xl flex-1 flex-col">
+              <div className="flex min-h-full flex-1 flex-col overflow-visible rounded-[2rem] border border-line">
                 <PageRenderer
                   pagina={pagina}
                   selecionadoId={selecionadoId}

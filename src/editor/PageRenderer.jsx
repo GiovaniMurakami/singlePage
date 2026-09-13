@@ -107,7 +107,7 @@ function PopoverRapido({
   const caixa = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const LARGURA = 320;
-  const ALTURA_MAX = Math.min(typeof window !== "undefined" ? window.innerHeight * 0.7 : 448, 448);
+  const ALTURA_MAX = typeof window !== "undefined" ? Math.min(window.innerHeight - 32, 640) : 560;
 
   useLayoutEffect(() => {
     const colocar = () => {
@@ -115,13 +115,13 @@ function PopoverRapido({
       if (!alvo) return;
       const ret = alvo.getBoundingClientRect();
       const margem = 16;
+      const gap = 10;
+      const altura = Math.min(caixa.current?.offsetHeight || ALTURA_MAX, ALTURA_MAX);
       let left = ret.left + ret.width / 2 - LARGURA / 2;
       left = Math.max(margem, Math.min(left, window.innerWidth - LARGURA - margem));
-      const altura = caixa.current?.offsetHeight || ALTURA_MAX;
-      const cabeEmbaixo = ret.bottom + 10 + altura <= window.innerHeight - margem;
-      const top = cabeEmbaixo
-        ? ret.bottom + 10
-        : Math.max(margem, Math.min(ret.top - altura - 10, window.innerHeight - altura - margem));
+      const cabeEmbaixo = window.innerHeight - ret.bottom - margem >= Math.min(altura, 220);
+      let top = cabeEmbaixo ? ret.bottom + gap : ret.top - altura - gap;
+      top = Math.max(margem, Math.min(top, window.innerHeight - margem - altura));
       setPos({ top, left });
     };
     colocar();
@@ -154,7 +154,7 @@ function PopoverRapido({
       ref={caixa}
       className="parte-popover"
       data-editor-chrome
-      style={{ top: pos.top, left: pos.left, width: LARGURA, maxHeight: ALTURA_MAX }}
+      style={{ position: "fixed", top: pos.top, left: pos.left, width: LARGURA, maxHeight: ALTURA_MAX, zIndex: 200 }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseEnter={onEntrar}
@@ -1688,7 +1688,7 @@ export function PageRenderer({
 
   return (
     <div
-      className={onSelect || compacto ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
+      className={compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-1 flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),
