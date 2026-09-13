@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { GripVertical, LayoutTemplate, Plus, Trash2, X } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
 import { AnuncioSlot } from "../components/ui/AnuncioSlot";
+import { enviarFormularioPagina } from "../services/backendApi";
 import { TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
 import { layoutIdDoBloco, temLayouts } from "./blocoLayouts";
 import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloDaParte, estiloDoItem, estiloMidia, temaDoBloco } from "./aparencia";
@@ -204,7 +205,7 @@ function PopoverRapido({
 
 function parteEncaixa(bloco, parte) {
   const id = parte?.id || "";
-  if (id === "botao" || id === "foto" || id === "imagem") return true;
+  if (id === "botao") return true;
   return (bloco?.tipo === "botoes" || bloco?.tipo === "redes" || bloco?.tipo === "navegacao") && id.startsWith("item-");
 }
 
@@ -583,19 +584,24 @@ function BotaoPagina({ item, tema, className = "" }) {
 function fotoCapa({ props, onEscolherFoto, className = "", style }) {
   const tamanho = props.fotoTamanho || 112;
   const parteFoto = props.estiloPartes?.foto || {};
+  const larguraCustom = parteFoto.itemLargura !== "" && parteFoto.itemLargura != null;
+  const larga = style?.height === "auto" || className.includes("max-w-full") || larguraCustom;
+  const largura = larguraCustom ? Number(parteFoto.itemLargura) : tamanho;
   const raio = parteFoto.raio === "" || parteFoto.raio == null ? (props.fotoRaio ?? 999) : Number(parteFoto.raio);
   const caixa = estiloDaParte(props, "foto", style);
-  const larga = style?.height === "auto" || className.includes("max-w-full");
   const midia = {
-    width: larga ? "100%" : tamanho,
+    width: larga ? (larguraCustom ? largura : "100%") : tamanho,
     height: larga ? "auto" : tamanho,
+    maxWidth: "100%",
     maxHeight: style?.maxHeight,
     borderRadius: raio,
-    objectFit: "cover",
+    objectFit: parteFoto.objectFit || "cover",
     display: "block",
+    flexShrink: 0,
+    minWidth: 0,
   };
   const conteudo = props.fotoUrl ? (
-    <img src={props.fotoUrl} alt="" className="object-cover" style={midia} />
+    <img src={props.fotoUrl} alt="" className="object-cover max-w-full" style={midia} />
   ) : (
     <label className="capa-foto-vazia" style={midia} onClick={(evento) => evento.stopPropagation()}>
       <span>Foto</span>
@@ -619,8 +625,11 @@ function fotoCapa({ props, onEscolherFoto, className = "", style }) {
       className={className}
       style={{
         ...caixa,
-        width: caixa.width || (larga ? undefined : "fit-content"),
+        width: caixa.width || (larga ? "100%" : tamanho),
+        height: larga ? (caixa.height || "auto") : (caixa.height || tamanho),
         maxWidth: "100%",
+        minWidth: 0,
+        flexShrink: 0,
         overflow: caixa.overflow || "hidden",
       }}
     >
@@ -973,22 +982,6 @@ function opcoesDaLista(campo) {
     .filter(Boolean);
 }
 
-function montarMailtoCampos(destEmail, assunto, campos, valores) {
-  const dest = String(destEmail || "").trim();
-  if (!dest) return "";
-  const linhas = campos.map((campo) => {
-    const valor = valores[campo.id];
-    const rotulo = campo.rotulo || campo.placeholder || "Campo";
-    if (campo.tipo === "check") return valor ? `${rotulo}: sim` : "";
-    if (valor == null || String(valor).trim() === "") return "";
-    return campo.tipo === "area" ? `${rotulo}:\n${valor}` : `${rotulo}: ${valor}`;
-  }).filter(Boolean);
-  const params = new URLSearchParams();
-  if (assunto) params.set("subject", assunto);
-  if (linhas.length) params.set("body", linhas.join("\n"));
-  return `mailto:${dest}?${params.toString()}`;
-}
-
 function CampoPagina({ campo, valor, onChange, interativo, className }) {
   const obrigatorio = interativo && Boolean(campo.obrigatorio);
   const comum = `${className} border border-line bg-transparent`;
@@ -1040,31 +1033,41 @@ function CampoPagina({ campo, valor, onChange, interativo, className }) {
   );
 }
 
-function BlocoFormulario({ props, tema, interativo, marcar = semMarca }) {
+function BlocoFormulario({ props, tema, interativo, marcar = semMarca, slug }) {
   const campos = camposDoFormulario(props);
   const [valores, setValores] = useState({});
   const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
 
   const setValor = (id, valor) => setValores((atual) => ({ ...atual, [id]: valor }));
 
-  const enviar = (evento) => {
+  const enviar = async (evento) => {
     evento.preventDefault();
     if (!interativo) return;
-    if (!props.destEmail) {
-      setErro("Defina o e-mail de destino no painel do bloco.");
+    if (!slug) {
+      setErro("Publique a página para receber as respostas por e-mail.");
       return;
     }
-    const primeiroTexto = campos.find((campo) => campo.tipo !== "check" && String(valores[campo.id] || "").trim());
-    const href = montarMailtoCampos(
-      props.destEmail,
-      props.assunto || `Mensagem de ${primeiroTexto ? valores[primeiroTexto.id] : "sua página"}`,
-      campos,
-      valores
-    );
-    window.location.href = href;
-    setEnviado(true);
+    setEnviando(true);
     setErro("");
+    try {
+      const camposEnvio = campos.map((campo) => ({
+        id: campo.id,
+        rotulo: campo.rotulo || campo.placeholder || "Campo",
+        tipo: campo.tipo,
+        valor: valores[campo.id],
+      }));
+      await enviarFormularioPagina(slug, {
+        assunto: props.assunto || "",
+        campos: camposEnvio,
+      });
+      setEnviado(true);
+    } catch (error) {
+      setErro(error?.response?.data?.mensagem || "Não foi possível enviar. Tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const local = temaDoBloco(props, tema);
@@ -1090,14 +1093,14 @@ function BlocoFormulario({ props, tema, interativo, marcar = semMarca }) {
         </div>
       ), "mt-4")}
       {marcar("botao", (
-        <button type="submit" className="min-h-12 w-full px-6 text-sm font-medium text-white" style={estiloBotaoEnvio}>
-          {props.botao || "Enviar"}
+        <button type="submit" disabled={enviando} className="min-h-12 w-full px-6 text-sm font-medium text-white disabled:opacity-60" style={estiloBotaoEnvio}>
+          {enviando ? "Enviando…" : (props.botao || "Enviar")}
         </button>
       ), "mt-3")}
       {erro && <p className="mt-3 text-sm text-red-400">{erro}</p>}
       {enviado && (
         <p className="mt-3 text-sm opacity-70">
-          Abrimos o seu e-mail com a mensagem pronta para {props.destEmail}.
+          Recebemos sua mensagem. O dono da página vai ver no e-mail.
         </p>
       )}
     </form>
@@ -1402,7 +1405,7 @@ function ZonaVazia({ ativo, sobre, dica, onSelect, onEscolher, onDragOver, onDro
   );
 }
 
-function ItemCanvas({ bloco, tema, editor, faixaTema }) {
+function ItemCanvas({ bloco, tema, editor, faixaTema, slug }) {
   const Comp = COMPONENTES[bloco.tipo];
   const local = faixaTema || tema;
   const {
@@ -1470,7 +1473,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
             <p className="celula-editor-rotulo">Coluna {indice + 1}</p>
             {(celula.blocos || []).map((filho) => (
               <div key={filho.id}>
-                <ItemCanvas bloco={filho} tema={local} editor={editor} />
+                <ItemCanvas bloco={filho} tema={local} editor={editor} slug={slug} />
                 {onInserir && (
                   <PontoDeInsercao
                     rotulo="Adicionar aqui"
@@ -1513,6 +1516,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
                 tema={temaFilhos}
                 editor={editor}
                 faixaTema={bloco.tipo === "faixa" ? temaFilhos : undefined}
+                slug={slug}
               />
               {onInserir && (
                 <PontoDeInsercao
@@ -1549,6 +1553,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
     <Comp
       props={bloco.props || {}}
       tema={local}
+      slug={slug}
       interativo={interativo}
       marcar={onSelect ? criarMarcador(bloco, selecionadoId, onSelect, {
         onRemoverParte,
@@ -1743,7 +1748,7 @@ export function PageRenderer({
         )}
         {blocos.map((bloco) => (
           <div key={bloco.id}>
-            <ItemCanvas bloco={bloco} tema={tema} editor={editor} />
+            <ItemCanvas bloco={bloco} tema={tema} editor={editor} slug={pagina.slug} />
             {onInserir && (
               <PontoDeInsercao
                 permitirEstrutura

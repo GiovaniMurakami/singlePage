@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { HelpCircle, X } from "lucide-react";
-import { ASSUNTOS_AJUDA, EMAIL_SUPORTE } from "../../constants/suporte";
+import { ASSUNTOS_AJUDA } from "../../constants/suporte";
+import { enviarPedidoAjuda, mensagemErro } from "../../services/backendApi";
 import { enderecoReservado } from "../../constants/site";
 
 const campo = "w-full rounded-2xl border border-line bg-paper px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:shadow-[0_0_0_4px_var(--color-accent-soft)]";
@@ -16,6 +17,8 @@ export function HelpButton() {
   const { pathname } = useLocation();
   const [aberto, setAberto] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -30,26 +33,22 @@ export function HelpButton() {
 
   const set = (campoNome, valor) => setForm((atual) => ({ ...atual, [campoNome]: valor }));
 
-  const enviar = (evento) => {
+  const enviar = async (evento) => {
     evento.preventDefault();
-    const assuntoLabel = ASSUNTOS_AJUDA.find((item) => item.id === form.assunto)?.rotulo || form.assunto;
-    const corpo = [
-      `Nome: ${form.nome}`,
-      `E-mail para resposta: ${form.email}`,
-      `Assunto: ${assuntoLabel}`,
-      `Página / slug: ${form.pagina || "—"}`,
-      `O que eu esperava: ${form.esperado || "—"}`,
-      `O que aconteceu: ${form.aconteceu || "—"}`,
-      `Navegador: ${navigator.userAgent}`,
-      "",
-      form.mensagem || "",
-    ].join("\n");
-    const params = new URLSearchParams({
-      subject: `Ajuda Single — ${assuntoLabel}`,
-      body: corpo,
-    });
-    window.location.href = `mailto:${EMAIL_SUPORTE}?${params.toString()}`;
-    setEnviado(true);
+    setEnviando(true);
+    setErro("");
+    try {
+      await enviarPedidoAjuda({
+        ...form,
+        assunto: ASSUNTOS_AJUDA.find((item) => item.id === form.assunto)?.rotulo || form.assunto,
+        navegador: navigator.userAgent,
+      });
+      setEnviado(true);
+    } catch (error) {
+      setErro(mensagemErro(error, "Não foi possível enviar. Tente de novo."));
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -113,16 +112,19 @@ export function HelpButton() {
                 <span className="mb-1.5 block text-muted">Mais algum detalhe</span>
                 <textarea className={campo} rows={3} value={form.mensagem} onChange={(e) => set("mensagem", e.target.value)} />
               </label>
+              {erro && (
+                <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{erro}</p>
+              )}
               {enviado && (
                 <p className="rounded-2xl bg-accent-soft px-4 py-3 text-sm">
-                  Abri o seu e-mail com a mensagem pronta para {EMAIL_SUPORTE}.
+                  Recebi sua mensagem. Respondo no e-mail que você informou.
                 </p>
               )}
             </div>
 
             <footer className="border-t border-line px-6 py-4">
-              <button type="submit" className="w-full rounded-full bg-accent py-3 text-sm font-medium text-white transition hover:bg-accent-strong">
-                Enviar para o Giovani
+              <button type="submit" disabled={enviando} className="w-full rounded-full bg-accent py-3 text-sm font-medium text-white transition hover:bg-accent-strong disabled:opacity-60">
+                {enviando ? "Enviando…" : "Enviar para o Giovani"}
               </button>
             </footer>
           </form>

@@ -13,6 +13,9 @@ const ROTAS_RESERVADAS = new Set([
   "app",
   "conta",
   "p",
+  "verificar-email",
+  "esqueci-senha",
+  "redefinir-senha",
 ]);
 
 /** Base pública do site (domínio atual). */

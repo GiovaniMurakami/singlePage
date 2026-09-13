@@ -46,6 +46,8 @@ Env de build: só `VITE_API_URL`
 - **Espaço editor vs publicado:** `semMarca` precisa preservar `className` (ex. `mt-8` do botão da capa). `estiloDoItem` deixa `extra` (largura/altura da foto) ganhar de `caixaDoBloco`. Não forçar `width: 100%` no flex de parte — estourava a foto no ar. Padding/margem da foto no wrapper; tamanho no `<img>`. Canvas do editor sem `max-w-3xl` extra: a largura é a do tema da página.
 - **Anúncios Free:** trilhos laterais `position: absolute`, fundo neutro `#f3f4f6`, independentes do tema da página. Em viewport &lt; 1200px, faixa sticky embaixo. Página Pro/Ultra não renderiza anúncio (`anuncios: false` da API).
 - **Fundo / layout / padding** de uma parte grava no **item** (`estiloPartes` / item da lista), não no bloco.
+- **Foto da capa:** o tamanho publicado é o mesmo do editor. Quadrado usa `fotoTamanho` (largura e altura). Layout “Largura da foto” (`itemLargura`) vira retângulo com altura automática nos dois lados. O wrapper flex não pode crescer até o tamanho nativo da imagem.
+- **E-mails SES:** ajuda, verificação de conta, senha, plano, página publicada e formulário saem por `noreply@singlepage.com.br`. Ajuda vai para `giovani.murakami@outlook.com`.
 
 ## Preços (UI)
 

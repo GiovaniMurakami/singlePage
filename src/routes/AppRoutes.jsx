@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LandingPage } from "../pages/LandingPage";
 import { LoginPage, CadastroPage } from "../pages/AuthPages";
+import { VerificarEmailPage } from "../pages/VerificarEmailPage";
+import { EsqueciSenhaPage, RedefinirSenhaPage } from "../pages/SenhaPages";
 import { DashboardPage } from "../pages/DashboardPage";
 import { EditorPage } from "../pages/EditorPage";
 import { PrecosPage } from "../pages/PrecosPage";
@@ -24,6 +26,9 @@ export function AppRoutes() {
       <Route path="/criar" element={<GuestEditorPage />} />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/cadastrar" element={<CadastroPage />} />
+      <Route path="/verificar-email" element={<VerificarEmailPage />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/precos" element={<PrecosPage />} />
       <Route path="/p/:slug" element={<PublicPage />} />
       <Route path="/app" element={<Protected><DashboardPage /></Protected>} />

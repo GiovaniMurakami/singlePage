@@ -4,6 +4,13 @@ export const cadastrarUsuario = (dados) => httpClient.post("/usuario/cadastrar",
 export const loginUsuario = (dados) => httpClient.post("/usuario/login", dados).then((r) => r.data);
 export const logoutUsuario = (refreshToken) => httpClient.post("/usuario/logout", { refreshToken }).then((r) => r.data);
 export const buscarPerfil = () => httpClient.get("/usuario/perfil").then((r) => r.data);
+export const verificarEmail = (token) => httpClient.post("/usuario/verificar-email", { token }).then((r) => r.data);
+export const reenviarVerificacaoEmail = () => httpClient.post("/usuario/reenviar-verificacao").then((r) => r.data);
+export const pedirRedefinicaoSenha = (email) => httpClient.post("/usuario/esqueci-senha", { email }).then((r) => r.data);
+export const redefinirSenha = (dados) => httpClient.post("/usuario/redefinir-senha", dados).then((r) => r.data);
+export const alterarSenha = (dados) => httpClient.post("/usuario/alterar-senha", dados).then((r) => r.data);
+export const enviarPedidoAjuda = (dados) => httpClient.post("/suporte", dados).then((r) => r.data);
+export const enviarFormularioPagina = (slug, dados) => httpClient.post(`/p/${encodeURIComponent(slug)}/formulario`, dados).then((r) => r.data);
 
 export const listarPaginas = () => httpClient.get("/pagina").then((r) => r.data);
 export const criarPagina = (dados) => httpClient.post("/pagina", dados).then((r) => r.data);

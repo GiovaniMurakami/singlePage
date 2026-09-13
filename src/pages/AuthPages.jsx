@@ -18,8 +18,10 @@ function AuthForm({ modo }) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (modo === "cadastro") await cadastrar(form);
-      else await login({ email: form.email, senha: form.senha });
+      if (modo === "cadastro") {
+        await cadastrar(form);
+        addToast("Enviamos um e-mail para você confirmar a conta.", "sucesso");
+      } else await login({ email: form.email, senha: form.senha });
       navigate(temRascunho() ? "/criar" : "/app");
     } catch (error) {
       addToast(mensagemErro(error), "erro");
@@ -50,7 +52,8 @@ function AuthForm({ modo }) {
           {modo === "cadastro" ? (
             <>Já tem conta? <Link to="/entrar" className="text-ink">Entrar</Link></>
           ) : (
-            <>Novo por aqui? <Link to="/cadastrar" className="text-ink">Criar conta</Link></>
+            <>Novo por aqui? <Link to="/cadastrar" className="text-ink">Criar conta</Link>
+              <span className="block mt-2"><Link to="/esqueci-senha" className="text-ink">Esqueci a senha</Link></span></>
           )}
         </p>
       </form>
