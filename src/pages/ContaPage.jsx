@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { Shell } from "../components/ui/Shell";
 import { useAuth } from "../context/AuthContext";
@@ -49,6 +49,18 @@ export function ContaPage() {
           <div><dt className="text-muted">Nome</dt><dd>{usuario?.nome}</dd></div>
           <div><dt className="text-muted">E-mail</dt><dd className="break-all">{usuario?.email}{usuario?.emailVerificado ? "" : " · não confirmado"}</dd></div>
           <div><dt className="text-muted">Plano</dt><dd>{usuario?.limites?.nome} · {usuario?.statusAssinatura}</dd></div>
+          <div>
+            <dt className="text-muted">Termos e privacidade</dt>
+            <dd>
+              {usuario?.aceiteTermosEm
+                ? `Aceitos em ${new Date(usuario.aceiteTermosEm).toLocaleDateString("pt-BR")}`
+                : "Conta anterior à coleta do aceite"}
+              {" · "}
+              <Link to="/termos" className="text-accent">Termos</Link>
+              {" · "}
+              <Link to="/privacidade" className="text-accent">Privacidade</Link>
+            </dd>
+          </div>
         </dl>
         <button type="button" onClick={() => portal.mutate()} className="mt-6 rounded-full border border-line px-5 py-3 text-sm">
           Gerenciar assinatura no Stripe

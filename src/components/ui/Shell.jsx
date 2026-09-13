@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Instagram, Menu, X } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { AvisoLgpd } from "./AvisoLgpd";
 
 const INSTAGRAM_URL = "https://www.instagram.com/_singlepage/";
 
@@ -100,18 +101,23 @@ export function Shell({ children }) {
       <footer className="border-t border-line/80 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 sm:flex-row">
           <p className="text-sm text-muted">Single — uma página, no ar hoje</p>
-          <a
-            href={INSTAGRAM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 text-sm text-ink-soft transition hover:text-ink"
-            aria-label="Instagram do Single"
-          >
-            <Instagram size={18} strokeWidth={1.75} />
-            @_singlepage
-          </a>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-ink-soft">
+            <Link to="/termos" className="hover:text-ink">Termos</Link>
+            <Link to="/privacidade" className="hover:text-ink">Privacidade</Link>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 transition hover:text-ink"
+              aria-label="Instagram do Single"
+            >
+              <Instagram size={18} strokeWidth={1.75} />
+              @_singlepage
+            </a>
+          </div>
         </div>
       </footer>
+      <AvisoLgpd />
     </div>
   );
 }

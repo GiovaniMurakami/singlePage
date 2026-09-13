@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { HelpCircle, X } from "lucide-react";
 import { ASSUNTOS_AJUDA } from "../../constants/suporte";
 import { enviarPedidoAjuda, mensagemErro } from "../../services/backendApi";
 import { enderecoReservado, slugDoHost } from "../../constants/site";
+import { avisoLgpdPendente, EVENTO_AVISO_LGPD } from "./AvisoLgpd";
 
 const campo = "w-full rounded-2xl border border-line bg-paper px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:shadow-[0_0_0_4px_var(--color-accent-soft)]";
 
@@ -30,7 +31,15 @@ export function HelpButton() {
     mensagem: "",
   });
 
+  const [lgpdAberto, setLgpdAberto] = useState(avisoLgpdPendente);
   const noEditor = pathname === "/criar" || /^\/app\/[^/]+$/.test(pathname);
+
+  useEffect(() => {
+    const sync = () => setLgpdAberto(avisoLgpdPendente());
+    window.addEventListener(EVENTO_AVISO_LGPD, sync);
+    return () => window.removeEventListener(EVENTO_AVISO_LGPD, sync);
+  }, []);
+
   if (paginaPublicada(pathname) || noEditor) return null;
 
   const set = (campoNome, valor) => setForm((atual) => ({ ...atual, [campoNome]: valor }));
@@ -60,7 +69,11 @@ export function HelpButton() {
         onClick={() => setAberto(true)}
         aria-label="Preciso de ajuda"
         className="fixed right-[max(1.25rem,env(safe-area-inset-right))] z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-3 text-sm text-paper shadow-[0_12px_40px_rgba(0,0,0,0.18)] transition hover:scale-[1.03] active:scale-[0.98] sm:px-4"
-        style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
+        style={{
+          bottom: lgpdAberto
+            ? "max(6.5rem, calc(env(safe-area-inset-bottom) + 5.75rem))"
+            : "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
+        }}
       >
         <HelpCircle size={18} />
         <span className="hidden sm:inline">Preciso de ajuda</span>

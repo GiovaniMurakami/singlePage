@@ -8,6 +8,7 @@ export const ASSUNTOS_AJUDA = [
   { id: "sob-medida", rotulo: "Site completo / reunião" },
   { id: "dominio", rotulo: "Domínio ou endereço da página" },
   { id: "formulario", rotulo: "Formulário / e-mail" },
+  { id: "lgpd", rotulo: "LGPD / dados pessoais" },
   { id: "outro", rotulo: "Outro" },
 ];
 

@@ -4,6 +4,8 @@ export const SITE_HOST_APEX = "singlepage.com.br";
 export const SITE_DESCRICAO =
   "Crie e publique uma página bonita em minutos. Editor visual, modelos prontos, links, formulário e fotos — no ar hoje.";
 export const SITE_OG_IMAGE = "";
+export const VERSAO_TERMOS = "2026-09-13";
+export const DATA_TERMOS = "13 de setembro de 2026";
 
 const ENDERECOS_RESERVADOS = new Set([
   "",
@@ -21,6 +23,11 @@ const ENDERECOS_RESERVADOS = new Set([
   "cadastrar",
   "precos",
   "conta",
+  "termos",
+  "privacidade",
+  "lgpd",
+  "cookies",
+  "legal",
   "p",
   "verificar-email",
   "esqueci-senha",

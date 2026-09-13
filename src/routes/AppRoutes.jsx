@@ -13,6 +13,7 @@ import { RedirectPublica } from "../pages/RedirectPublica";
 import { GuestEditorPage } from "../pages/GuestEditorPage";
 import { AnalyticsPage } from "../pages/AnalyticsPage";
 import { slugDoHost } from "../constants/site";
+import { PrivacidadePage, TermosPage } from "../pages/LegalPages";
 
 function Protected({ children }) {
   const { autenticado, ready } = useAuth();
@@ -37,6 +38,11 @@ export function AppRoutes() {
       <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
       <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/precos" element={<PrecosPage />} />
+      <Route path="/termos" element={<TermosPage />} />
+      <Route path="/privacidade" element={<PrivacidadePage />} />
+      <Route path="/lgpd" element={<Navigate to="/privacidade" replace />} />
+      <Route path="/cookies" element={<Navigate to="/privacidade" replace />} />
+      <Route path="/legal" element={<Navigate to="/termos" replace />} />
       <Route path="/p/:slug" element={<RedirectPublica />} />
       <Route path="/app" element={<Protected><DashboardPage /></Protected>} />
       <Route path="/app/:paginaId/painel" element={<Protected><AnalyticsPage /></Protected>} />
