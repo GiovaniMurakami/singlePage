@@ -8,6 +8,7 @@ import { criarPagina, excluirPagina, listarPaginas, mensagemErro } from "../serv
 import { CATEGORIAS, TEMPLATES, slugify } from "../editor/templates";
 import { temRascunho } from "../editor/rascunho";
 import { getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
+import { Seo } from "../components/Seo";
 
 export function DashboardPage() {
   const { usuario } = useAuth();
@@ -43,6 +44,7 @@ export function DashboardPage() {
 
   return (
     <Shell>
+      <Seo title="Suas páginas" path="/app" robots="noindex,nofollow" />
       <div className="mx-auto max-w-5xl px-5 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

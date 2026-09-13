@@ -358,22 +358,38 @@ function definidoNumero(valor) {
 export function CampoFundo({ fonte, corKey = "corFundo", fallbackCor = "#ffffff", onChange, onArquivo }) {
   const modo = modoFundo(fonte);
   const cor = fonte[corKey] || fallbackCor;
-  const setModo = (fundoModo) => onChange({ fundoModo });
+  const setModo = (fundoModo) => {
+    if (fundoModo === "transparente") {
+      onChange({
+        fundoModo: "transparente",
+        [corKey]: "transparent",
+        ...(corKey === "corFundo" ? {} : { fundo: "transparent" }),
+      });
+      return;
+    }
+    onChange({ fundoModo });
+  };
 
   return (
     <div className="space-y-3">
       <Pills
-        valor={modo}
+        valor={modo === "transparente" ? "transparente" : modo}
+        wrap
         opcoes={[
           { id: "solido", nome: "Cor" },
           { id: "degrade", nome: "Degradê" },
           { id: "imagem", nome: "Imagem" },
+          { id: "transparente", nome: "Transparente" },
         ]}
         onChange={setModo}
       />
 
+      {modo === "transparente" && (
+        <p className="ui-dica text-[11px] leading-4">Sem cor de fundo — o conteúdo fica sobre o que estiver atrás.</p>
+      )}
+
       {modo === "solido" && (
-        <CampoCor label="Cor" value={fonte[corKey]} fallback={fallbackCor} onChange={(valor) => onChange({ [corKey]: valor, fundoModo: "solido" })} />
+        <CampoCor label="Cor" value={fonte[corKey] === "transparent" ? "" : fonte[corKey]} fallback={fallbackCor} onChange={(valor) => onChange({ [corKey]: valor, fundoModo: "solido" })} />
       )}
 
       {modo === "degrade" && (
@@ -401,7 +417,7 @@ export function CampoFundo({ fonte, corKey = "corFundo", fallbackCor = "#ffffff"
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <CampoCor label="De" value={fonte.fundoDe} fallback={cor} onChange={(fundoDe) => onChange({ fundoModo: "degrade", fundoDe })} />
+            <CampoCor label="De" value={fonte.fundoDe} fallback={cor === "transparent" ? fallbackCor : cor} onChange={(fundoDe) => onChange({ fundoModo: "degrade", fundoDe })} />
             <CampoCor label="Para" value={fonte.fundoPara} fallback="#155eff" onChange={(fundoPara) => onChange({ fundoModo: "degrade", fundoPara })} />
           </div>
           <Campo label="Tipo">

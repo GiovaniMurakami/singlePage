@@ -4,6 +4,7 @@ import { Shell } from "../components/ui/Shell";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { criarPortal, mensagemErro } from "../services/backendApi";
+import { Seo } from "../components/Seo";
 
 export function ContaPage() {
   const { usuario } = useAuth();
@@ -17,6 +18,7 @@ export function ContaPage() {
 
   return (
     <Shell>
+      <Seo title="Conta" path="/conta" robots="noindex,nofollow" />
       <div className="mx-auto max-w-xl px-5 py-16">
         <h1 className="font-display text-5xl">Conta</h1>
         {params.get("checkout") === "sucesso" && (

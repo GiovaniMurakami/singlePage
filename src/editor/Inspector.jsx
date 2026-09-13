@@ -994,7 +994,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
 export function ThemeInspector({ tema, onChange, onEscolherImagem }) {
   return (
     <div className="space-y-2">
-      <CartaoAjuste titulo="Fundo da página" resumo="Cor, degradê ou imagem">
+      <CartaoAjuste titulo="Fundo da página" resumo="Cor, degradê, imagem ou transparente">
         <CampoFundo
           fonte={tema}
           corKey="fundo"

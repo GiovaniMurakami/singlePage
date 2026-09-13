@@ -5,6 +5,8 @@ import { Reveal } from "../components/ui/Reveal";
 import { HeroProduto } from "../components/ui/HeroProduto";
 import { TEMPLATES } from "../editor/templates";
 import { IconeLucide } from "../editor/icones";
+import { Seo } from "../components/Seo";
+import { SITE_DESCRICAO, SITE_DOMINIO_CANONICO, SITE_NOME } from "../constants/site";
 
 const PASSOS = [
   ["Escolhe um começo", "Perfil, landing, formulário, portfólio ou all-my-links. Ou uma página em branco."],
@@ -32,9 +34,45 @@ const FAQ = [
 
 export function LandingPage() {
   const modelos = TEMPLATES.filter((item) => item.destaque && item.id !== "em-branco");
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: SITE_NOME,
+        url: SITE_DOMINIO_CANONICO,
+        description: SITE_DESCRICAO,
+        inLanguage: "pt-BR",
+        potentialAction: {
+          "@type": "CreateAction",
+          target: `${SITE_DOMINIO_CANONICO}/criar`,
+          name: "Criar página",
+        },
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: SITE_NOME,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: SITE_DOMINIO_CANONICO,
+        description: SITE_DESCRICAO,
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "BRL",
+        },
+      },
+    ],
+  };
 
   return (
     <Shell>
+      <Seo
+        title="Uma página, no ar hoje"
+        description={SITE_DESCRICAO}
+        path="/"
+        jsonLd={jsonLd}
+      />
       <section className="hero-glow">
         <div className="mx-auto max-w-5xl px-5 pb-10 pt-16 text-center md:pt-24">
           <Reveal>

@@ -7,6 +7,7 @@ import { EditorShell } from "../editor/EditorShell";
 import { aplicarImagemNoBloco, slugify } from "../editor/templates";
 import { substituirBloco } from "../editor/blocosArvore";
 import { enderecoReservado, getSiteBaseUrl, urlPublicaPagina } from "../constants/site";
+import { Seo } from "../components/Seo";
 
 export function EditorPage() {
   const { paginaId } = useParams();
@@ -72,14 +73,23 @@ export function EditorPage() {
     }
   };
 
-  if (!pagina) return <div className="p-8 text-sm text-muted">Carregando editor…</div>;
+  if (!pagina) {
+    return (
+      <>
+        <Seo title="Editor" path={`/app/${paginaId}`} robots="noindex,nofollow" />
+        <div className="p-8 text-sm text-muted">Carregando editor…</div>
+      </>
+    );
+  }
 
   const endereco = slugify(pagina.slug || pagina.titulo);
   const linkPublico = urlPublicaPagina(endereco);
   const base = getSiteBaseUrl().replace(/^https?:\/\//, "");
 
   return (
-    <EditorShell
+    <>
+      <Seo title={`Editar · ${pagina.titulo}`} path={`/app/${paginaId}`} robots="noindex,nofollow" />
+      <EditorShell
       pagina={pagina}
       onChange={(proxima) => {
         setPagina((atual) => {
@@ -123,5 +133,6 @@ export function EditorPage() {
         </>
       )}
     />
+    </>
   );
 }

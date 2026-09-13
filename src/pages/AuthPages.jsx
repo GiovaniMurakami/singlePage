@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { mensagemErro } from "../services/backendApi";
 import { temRascunho } from "../editor/rascunho";
+import { Seo } from "../components/Seo";
 
 function AuthForm({ modo }) {
   const { login, cadastrar } = useAuth();
@@ -29,6 +30,12 @@ function AuthForm({ modo }) {
 
   return (
     <Shell>
+      <Seo
+        title={modo === "cadastro" ? "Criar conta" : "Entrar"}
+        description={modo === "cadastro" ? "Crie sua conta no Single para publicar e guardar sua página." : "Entre na sua conta Single."}
+        path={modo === "cadastro" ? "/cadastrar" : "/entrar"}
+        robots="noindex,nofollow"
+      />
       <form onSubmit={onSubmit} className="mx-auto mt-20 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-8 shadow-sm ring-1 ring-line">
         <h1 className="font-display text-4xl">{modo === "cadastro" ? "Crie sua conta" : "Entrar"}</h1>
         {modo === "cadastro" && (

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /app/
+Disallow: /conta
+Disallow: /entrar
+Disallow: /cadastrar
+
+Sitemap: https://singlepage.com.br/sitemap.xml

@@ -11,17 +11,20 @@ export function modoFundo(fonte = {}) {
   if (fonte.fundoModo) return fonte.fundoModo;
   if (fonte.fundoImagem) return "imagem";
   if (fonte.fundoDe || fonte.fundoPara) return "degrade";
+  if (fonte.fundo === "transparent" || fonte.corFundo === "transparent") return "transparente";
   return "solido";
 }
 
 export function temFundoProprio(fonte = {}) {
   const modo = modoFundo(fonte);
+  if (modo === "transparente") return false;
   if (modo === "degrade" && (fonte.fundoDe || fonte.fundoPara)) return true;
   if (modo === "imagem" && fonte.fundoImagem) return true;
-  return Boolean(fonte.corFundo);
+  return Boolean(fonte.corFundo || fonte.fundo);
 }
 
 export function corBaseFundo(fonte = {}, fallback = "#f5f5f7") {
+  if (modoFundo(fonte) === "transparente") return "transparent";
   if (modoFundo(fonte) === "degrade") return fonte.fundoDe || fonte.fundo || fonte.corFundo || fallback;
   return fonte.fundo || fonte.corFundo || fallback;
 }
@@ -29,6 +32,9 @@ export function corBaseFundo(fonte = {}, fallback = "#f5f5f7") {
 export function cssFundo(fonte = {}, corKey = "fundo") {
   const modo = modoFundo(fonte);
   const cor = fonte[corKey] || fonte.corFundo;
+  if (modo === "transparente") {
+    return { background: "transparent", backgroundImage: "none" };
+  }
   if (modo === "degrade") {
     const de = fonte.fundoDe || cor || "#0b0b10";
     const para = fonte.fundoPara || "#155eff";
