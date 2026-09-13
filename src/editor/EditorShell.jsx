@@ -379,7 +379,7 @@ export function EditorShell({
               </div>
             </div>
           ) : (
-            <div className="relative mx-auto flex min-h-full w-full max-w-3xl flex-1 flex-col">
+            <div className="relative mx-auto flex min-h-full w-full flex-1 flex-col">
               <div className="flex min-h-full flex-1 flex-col overflow-visible rounded-[2rem] border border-line">
                 <PageRenderer
                   pagina={pagina}

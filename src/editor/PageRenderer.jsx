@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GripVertical, LayoutTemplate, Plus, Trash2, X } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
@@ -75,7 +75,12 @@ function BotaoExcluirHold({ onConfirmar, rotulo = "Excluir" }) {
   );
 }
 
-const semMarca = (_parteId, node) => node;
+function semMarca(_parteId, node, className = "") {
+  if (!className) return node;
+  if (!isValidElement(node)) return <div className={className}>{node}</div>;
+  const atual = node.props.className || "";
+  return cloneElement(node, { className: [atual, className].filter(Boolean).join(" ") });
+}
 
 function inputCorAtivo(caixa) {
   const ativo = document.activeElement;
@@ -578,12 +583,18 @@ function BotaoPagina({ item, tema, className = "" }) {
 function fotoCapa({ props, onEscolherFoto, className = "", style }) {
   const tamanho = props.fotoTamanho || 112;
   const raio = props.fotoRaio ?? 999;
-  const visual = estiloDaParte(props, "foto", { width: tamanho, height: tamanho, borderRadius: raio, ...style });
-  if (props.fotoUrl) {
-    return <img src={props.fotoUrl} alt="" className={`object-cover ${className}`} style={visual} />;
-  }
-  return (
-    <label className={`capa-foto-vazia ${className}`} style={visual} onClick={(evento) => evento.stopPropagation()}>
+  const caixa = estiloDaParte(props, "foto", style);
+  const midia = {
+    width: tamanho,
+    height: tamanho,
+    borderRadius: raio,
+    objectFit: "cover",
+    display: "block",
+  };
+  const conteudo = props.fotoUrl ? (
+    <img src={props.fotoUrl} alt="" className="object-cover" style={midia} />
+  ) : (
+    <label className="capa-foto-vazia" style={midia} onClick={(evento) => evento.stopPropagation()}>
       <span>Foto</span>
       <span className="capa-foto-vazia-dica">Clique para adicionar</span>
       {onEscolherFoto && (
@@ -600,6 +611,7 @@ function fotoCapa({ props, onEscolherFoto, className = "", style }) {
       )}
     </label>
   );
+  return <div className={className} style={caixa}>{conteudo}</div>;
 }
 
 function textosCapa({ props, local, marcar, botaoClass = "mt-8" }) {
@@ -614,8 +626,8 @@ function textosCapa({ props, local, marcar, botaoClass = "mt-8" }) {
         </p>
       ))}
       {props.cta && marcar("botao", (
-        <BotaoPagina tema={local} item={itemBotaoCapa(props)} />
-      ), botaoClass)}
+        <BotaoPagina tema={local} item={itemBotaoCapa(props)} className={botaoClass} />
+      ))}
     </>
   );
 }
@@ -671,8 +683,8 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
           </p>
         ))}
         {props.cta && marcar("botao", (
-          <BotaoPagina tema={local} item={itemBotaoCapa(props)} />
-        ), "mt-8")}
+          <BotaoPagina tema={local} item={itemBotaoCapa(props)} className="mt-8" />
+        ))}
       </section>
     );
   }

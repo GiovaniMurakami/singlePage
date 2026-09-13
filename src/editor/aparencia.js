@@ -140,7 +140,6 @@ export function estiloLayout(props = {}) {
   const usarFlex = props.display === "flex" || (!props.display && (props.justify || props.align));
   if (props.display || usarFlex) {
     estilo.display = props.display || "flex";
-    estilo.width = "100%";
     estilo.boxSizing = "border-box";
   }
   if (usarFlex) {
@@ -205,7 +204,7 @@ export function caixaDoBloco(props = {}) {
 }
 
 export function estiloDoItem(item = {}, extra = {}) {
-  return { ...extra, ...caixaDoBloco(item) };
+  return { ...caixaDoBloco(item), ...extra };
 }
 
 export function estiloDaParte(props = {}, parteId, extra = {}) {

@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { HelpCircle, X } from "lucide-react";
 import { ASSUNTOS_AJUDA, EMAIL_SUPORTE } from "../../constants/suporte";
+import { enderecoReservado } from "../../constants/site";
 
 const campo = "w-full rounded-2xl border border-line bg-paper px-3.5 py-3 text-sm outline-none transition focus:border-accent focus:shadow-[0_0_0_4px_var(--color-accent-soft)]";
 
-function rotaDoEditor(pathname) {
-  return pathname === "/criar" || /^\/app\/[^/]+$/.test(pathname);
+function paginaPublicada(pathname) {
+  if (pathname.startsWith("/p/")) return true;
+  const primeiro = pathname.split("/").filter(Boolean)[0] || "";
+  return Boolean(primeiro) && !enderecoReservado(primeiro);
 }
 
 export function HelpButton() {
@@ -23,7 +26,7 @@ export function HelpButton() {
     mensagem: "",
   });
 
-  if (rotaDoEditor(pathname)) return null;
+  if (paginaPublicada(pathname)) return null;
 
   const set = (campoNome, valor) => setForm((atual) => ({ ...atual, [campoNome]: valor }));
 
