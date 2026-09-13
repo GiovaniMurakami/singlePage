@@ -61,7 +61,7 @@ export function ListaPartes({ partes, parteAtiva, onEscolher }) {
   return (
     <div className="mb-3 space-y-1.5">
       <p className="ui-dica text-[11px] leading-4">
-        Passe o mouse na página e clique direto no que quer mudar — ou escolha aqui:
+        Clique na página ou escolha aqui o que quer mudar:
       </p>
       <div className="flex flex-wrap gap-1">
         {partes.map((parte) => (

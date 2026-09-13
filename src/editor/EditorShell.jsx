@@ -134,10 +134,6 @@ export function EditorShell({
     onChange({ ...pagina, blocos: substituirBloco(pagina.blocos, proximo) });
   };
 
-  const abrirLayoutsSeCapa = (tipo, blocoId) => {
-    if (tipo === "capa") setLayoutsBlocoId(blocoId);
-  };
-
   const adicionarPeca = (tipo) => {
     const novo = blocoPadrao(tipo);
     const destino = destinoDaInsercao(pagina.blocos, alvoId, tipo);
@@ -145,7 +141,6 @@ export function EditorShell({
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
     setPainel("pagina");
-    abrirLayoutsSeCapa(tipo, novo.id);
   };
 
   const inserirEm = (tipo, destino) => {
@@ -153,7 +148,6 @@ export function EditorShell({
     registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
-    abrirLayoutsSeCapa(tipo, novo.id);
   };
 
   const soltarNoCanvas = (destinoId, posicao, dadosEvento, extra) => {
@@ -177,21 +171,17 @@ export function EditorShell({
       const novo = blocoPadrao(dados.tipo);
       if (extra?.celulaId && !ehTipoEstrutura(dados.tipo)) {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "celula", celulaId: extra.celulaId }), novo.id);
-        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       if (extra?.containerId && dados.tipo !== "secao") {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "dentro", containerId: extra.containerId }), novo.id);
-        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       if (destinoId) {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "lado", destinoId, posicao }), novo.id);
-        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       gravar(inserirPorDestino(pagina.blocos, novo, destinoDaInsercao(pagina.blocos, selecionadoId, dados.tipo)), novo.id);
-      abrirLayoutsSeCapa(dados.tipo, novo.id);
     }
     setAba("bloco");
   };
@@ -199,15 +189,12 @@ export function EditorShell({
   const selecionar = (id) => {
     setSelecionadoId(id);
     setAba("bloco");
+    if (id && largura < 1024) setPainel("ajustes");
   };
 
   const selecionarNaBarra = (id) => {
     selecionar(id);
-    setPainel("pagina");
-    const { blocoId, parteId } = separarAlvo(id);
-    if (parteId) return;
-    const encontrado = acharBloco(pagina.blocos, blocoId);
-    if (encontrado?.tipo === "capa") setLayoutsBlocoId(blocoId);
+    if (largura >= 1024) setPainel("pagina");
   };
 
   useEffect(() => {
@@ -307,7 +294,7 @@ export function EditorShell({
           <Tooltip
             passo="1"
             titulo="Adicionar"
-            texto="Clique para colocar no fim do que está selecionado, ou arraste até o lugar exato. Na página, o + entre os blocos faz o mesmo."
+            texto="Clique para colocar abaixo do que está selecionado. Na página, o + escolhe o lugar."
           >
             <p className="mt-3 text-xs uppercase tracking-[0.16em] text-muted">Adicionar</p>
           </Tooltip>
@@ -369,11 +356,11 @@ export function EditorShell({
             if (!pagina.blocos.length) soltarNoCanvas(null, "depois");
           }}
         >
-          <Tooltip passo="2" titulo="Clique no que quer mudar" texto="Passe o mouse para ver o nome de cada parte. Entre dois blocos aparece um + para adicionar ali." lado="baixo">
+          <Tooltip passo="2" titulo="Clique no que quer mudar" texto="Clique no texto, na foto ou no botão. O painel da direita muda só aquilo." lado="baixo">
             <p className="mb-3 text-center text-xs text-muted">
               {celular
-                ? "Visual do celular — clique para editar"
-                : "Clique no texto, na foto ou no botão. Entre os blocos aparece um + para adicionar"}
+                ? "Visual do celular — clique para editar no painel"
+                : "Clique no texto, na foto ou no botão. O painel da direita muda só aquilo"}
             </p>
           </Tooltip>
 

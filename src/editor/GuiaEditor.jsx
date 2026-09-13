@@ -1,6 +1,6 @@
 const PASSOS = [
-  { n: 1, nome: "Adicionar", dica: "Passe o mouse entre dois blocos e clique no + para colocar algo naquele lugar." },
-  { n: 2, nome: "Clicar", dica: "Clique direto no que quer mudar: a foto, o título ou o botão. O nome aparece ao passar o mouse." },
+  { n: 1, nome: "Adicionar", dica: "Clique no + entre dois blocos ou escolha na lista da esquerda." },
+  { n: 2, nome: "Clicar", dica: "Clique no texto, na foto ou no botão que quer mudar." },
   { n: 3, nome: "Ajustar", dica: "O painel da direita muda só o que está selecionado. Ctrl+Z desfaz, Delete apaga." },
 ];
 

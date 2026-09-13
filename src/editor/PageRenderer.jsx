@@ -1,6 +1,6 @@
 import { cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical, LayoutTemplate, Plus, Trash2, X } from "lucide-react";
+import { GripVertical, LayoutTemplate, Plus, Trash2 } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
 import { AnuncioSlot } from "../components/ui/AnuncioSlot";
 import { enviarFormularioPagina } from "../services/backendApi";
@@ -8,12 +8,9 @@ import { TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeD
 import { layoutIdDoBloco, temLayouts } from "./blocoLayouts";
 import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloDaParte, estiloDoItem, estiloMidia, temaDoBloco } from "./aparencia";
 import { FONTES, cssAlinhamento, cssOrientacao } from "./fontes";
-import { InspetorParte } from "./Inspector";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { fonteCaixaDaParte, idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
-import { escutarPopover, liberarPopover, reivindicarPopover } from "./popoverExclusivo";
-import { escutarSeletorCor, seletorCorAberto } from "./seletorCor";
 
 const LARGURAS = {
   estreita: "36rem",
@@ -83,126 +80,6 @@ function semMarca(_parteId, node, className = "") {
   return cloneElement(node, { className: [atual, className].filter(Boolean).join(" ") });
 }
 
-function inputCorAtivo(caixa) {
-  const ativo = document.activeElement;
-  return ativo instanceof HTMLInputElement && ativo.type === "color" && Boolean(caixa?.contains(ativo));
-}
-
-function ehSeletorDeCorNativo(evento, caixa) {
-  const caminho = typeof evento.composedPath === "function" ? evento.composedPath() : [evento.target];
-  if (caminho.some((no) => no instanceof HTMLInputElement && no.type === "color")) return true;
-  if (inputCorAtivo(caixa)) return true;
-  const alvo = evento.target;
-  if (!(alvo instanceof Node) || !document.documentElement.contains(alvo)) return true;
-  if (alvo === document.documentElement || alvo === document.body) return true;
-  return false;
-}
-
-function PopoverRapido({
-  ancoraRef,
-  bloco,
-  parte,
-  tema,
-  selecionado: _selecionado,
-  onAtualizar,
-  onEscolherImagem,
-  onFechar,
-  onEntrar,
-  onSair,
-}) {
-  const caixa = useRef(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const LARGURA = 320;
-  const ALTURA_MAX = typeof window !== "undefined" ? Math.min(window.innerHeight - 32, 640) : 560;
-
-  useLayoutEffect(() => {
-    const colocar = () => {
-      const alvo = ancoraRef?.current;
-      if (!alvo) return;
-      const ret = alvo.getBoundingClientRect();
-      const margem = 16;
-      const gap = 10;
-      const altura = Math.min(caixa.current?.offsetHeight || ALTURA_MAX, ALTURA_MAX);
-      let left = ret.left + ret.width / 2 - LARGURA / 2;
-      left = Math.max(margem, Math.min(left, window.innerWidth - LARGURA - margem));
-      const cabeEmbaixo = window.innerHeight - ret.bottom - margem >= Math.min(altura, 220);
-      let top = cabeEmbaixo ? ret.bottom + gap : ret.top - altura - gap;
-      top = Math.max(margem, Math.min(top, window.innerHeight - margem - altura));
-      setPos({ top, left });
-    };
-    colocar();
-    const id = window.requestAnimationFrame(colocar);
-    const obs = typeof ResizeObserver !== "undefined" ? new ResizeObserver(colocar) : null;
-    if (caixa.current) obs?.observe(caixa.current);
-    window.addEventListener("resize", colocar);
-    window.addEventListener("scroll", colocar, true);
-    return () => {
-      window.cancelAnimationFrame(id);
-      obs?.disconnect();
-      window.removeEventListener("resize", colocar);
-      window.removeEventListener("scroll", colocar, true);
-    };
-  }, [ancoraRef, parte?.id, ALTURA_MAX]);
-
-  useEffect(() => {
-    const teclou = (evento) => {
-      if (evento.key === "Escape" && !seletorCorAberto()) onFechar?.();
-    };
-    document.addEventListener("keydown", teclou);
-    return () => document.removeEventListener("keydown", teclou);
-  }, [onFechar]);
-
-  if (!bloco || !parte || !onAtualizar) return null;
-  const set = (props) => onAtualizar({ ...bloco, props: { ...bloco.props, ...props } });
-
-  return createPortal(
-    <div
-      ref={caixa}
-      className="parte-popover"
-      data-editor-chrome
-      style={{ position: "fixed", top: pos.top, left: pos.left, width: LARGURA, maxHeight: ALTURA_MAX, zIndex: 200 }}
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onMouseEnter={onEntrar}
-      onMouseLeave={(evento) => {
-        if (seletorCorAberto()) return;
-        if (evento.relatedTarget == null) return;
-        if (ehSeletorDeCorNativo(evento, caixa.current)) return;
-        if (inputCorAtivo(caixa.current)) return;
-        onSair?.();
-      }}
-    >
-      <div className="parte-popover-caixa">
-        <div className="parte-popover-topo">
-          <p className="parte-popover-titulo">{parte.nome}</p>
-          <button
-            type="button"
-            className="parte-popover-fechar"
-            aria-label="Fechar ajustes"
-            title="Fechar"
-            onClick={(evento) => {
-              evento.stopPropagation();
-              onFechar?.();
-            }}
-          >
-            <X size={14} />
-          </button>
-        </div>
-        <div className="parte-popover-corpo">
-          <InspetorParte
-            bloco={bloco}
-            parte={parte}
-            tema={tema}
-            set={set}
-            onEscolherImagem={onEscolherImagem}
-          />
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
 function parteEncaixa(bloco, parte) {
   const id = parte?.id || "";
   if (id === "botao") return true;
@@ -213,120 +90,37 @@ function Parte({
   bloco,
   parte,
   ativo,
-  tema,
   onSelect,
   onRemover,
-  onAtualizar,
-  onEscolherImagem,
   className = "",
   children,
 }) {
   const alvo = idParte(bloco.id, parte.id);
-  const ancoraRef = useRef(null);
-  const [hover, setHover] = useState(false);
-  const [fechado, setFechado] = useState(false);
-  const [dono, setDono] = useState(false);
-  const [corAberta, setCorAberta] = useState(false);
-  const timer = useRef(0);
-  const ativoRef = useRef(ativo);
-  ativoRef.current = ativo;
-  const mostrarPopover = onAtualizar && !fechado && dono && (hover || ativo || corAberta);
   const alignSelf = fonteCaixaDaParte(bloco, parte).alignSelf;
-
-  const entrar = () => {
-    clearTimeout(timer.current);
-    setFechado(false);
-    setHover(true);
-    reivindicarPopover(alvo);
-  };
-
-  const sair = () => {
-    if (seletorCorAberto()) return;
-    clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      if (seletorCorAberto()) return;
-      setHover(false);
-      if (!ativoRef.current) liberarPopover(alvo);
-    }, 220);
-  };
-
-  const fecharPopover = () => {
-    if (seletorCorAberto()) return;
-    clearTimeout(timer.current);
-    setFechado(true);
-    setHover(false);
-    liberarPopover(alvo);
-  };
-
-  useEffect(() => () => {
-    clearTimeout(timer.current);
-    liberarPopover(alvo);
-  }, [alvo]);
-
-  useEffect(() => escutarPopover((id) => setDono(id === alvo)), [alvo]);
-  useEffect(() => escutarSeletorCor(setCorAberta), []);
-
-  useEffect(() => {
-    if (ativo) {
-      setFechado(false);
-      reivindicarPopover(alvo);
-    }
-  }, [ativo, alvo]);
-
-  useEffect(() => {
-    if (ativo && !dono && !fechado) reivindicarPopover(alvo);
-  }, [ativo, dono, fechado, alvo]);
 
   return (
     <div
-      ref={ancoraRef}
       role="button"
       tabIndex={0}
       title={`Editar ${parte.nome.toLowerCase()}`}
       data-parte-ativa={ativo ? "true" : undefined}
-      data-parte-hover={hover ? "true" : undefined}
       className={`parte-alvo ${parteEncaixa(bloco, parte) ? "parte-alvo-encaixe" : ""} ${className}`}
       style={alignSelf ? { alignSelf } : undefined}
-      onMouseEnter={entrar}
-      onMouseLeave={sair}
       onClick={(evento) => {
         evento.stopPropagation();
-        setFechado(false);
-        reivindicarPopover(alvo);
         onSelect(alvo);
       }}
       onKeyDown={(evento) => {
         if (evento.key !== "Enter") return;
         evento.stopPropagation();
-        setFechado(false);
-        reivindicarPopover(alvo);
         onSelect(alvo);
       }}
     >
       <span className="parte-etiqueta" data-editor-chrome>{parte.nome}</span>
       {ativo && onRemover && podeRemoverParte(bloco, parte.id) && (
-        <div
-          className="parte-excluir"
-          data-editor-chrome
-          onMouseEnter={entrar}
-          onMouseLeave={sair}
-        >
+        <div className="parte-excluir" data-editor-chrome>
           <BotaoExcluirHold rotulo={parte.nome} onConfirmar={() => onRemover(bloco.id, parte.id)} />
         </div>
-      )}
-      {mostrarPopover && (
-        <PopoverRapido
-          ancoraRef={ancoraRef}
-          bloco={bloco}
-          parte={parte}
-          tema={tema}
-          selecionado={ativo}
-          onAtualizar={onAtualizar}
-          onEscolherImagem={onEscolherImagem}
-          onFechar={fecharPopover}
-          onEntrar={entrar}
-          onSair={sair}
-        />
       )}
       {children}
     </div>
@@ -344,11 +138,8 @@ function criarMarcador(bloco, selecionadoId, onSelect, extras = {}) {
         bloco={bloco}
         parte={parte}
         ativo={selecionadoId === idParte(bloco.id, parteId)}
-        tema={extras.tema}
         onSelect={onSelect}
         onRemover={extras.onRemoverParte}
-        onAtualizar={extras.onAtualizar}
-        onEscolherImagem={extras.onEscolherImagem}
         className={className}
       >
         {node}
