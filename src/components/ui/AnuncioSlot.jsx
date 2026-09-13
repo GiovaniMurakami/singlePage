@@ -25,7 +25,7 @@ export function AnuncioSlot({ posicao = "rodape" }) {
   useEffect(() => {
     if (!adsense) return undefined;
     const id = "single-adsense";
-    if (!document.getElementById(id)) {
+    if (!document.getElementById(id) && !document.querySelector('script[src*="adsbygoogle.js"]')) {
       const script = document.createElement("script");
       script.id = id;
       script.async = true;

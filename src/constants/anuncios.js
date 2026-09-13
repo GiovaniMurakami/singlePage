@@ -1,4 +1,4 @@
-export const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || "";
+export const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || "ca-pub-7785538630070819";
 export const ADSENSE_SLOT = import.meta.env.VITE_ADSENSE_SLOT || "";
 
 export const ANUNCIOS_PROPRIOS = [
