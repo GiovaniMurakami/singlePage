@@ -1680,7 +1680,6 @@ export function PageRenderer({
   const interativo = !onSelect;
   const mostrarAnuncios = anuncios && interativo;
   const blocos = pagina.blocos || [];
-  const meio = Math.max(0, Math.floor(blocos.length / 2) - 1);
   const editor = onSelect
     ? {
       selecionadoId,
@@ -1698,7 +1697,7 @@ export function PageRenderer({
     }
     : null;
 
-  return (
+  const canvas = (
     <div
       className={compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-1 flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
@@ -1712,7 +1711,7 @@ export function PageRenderer({
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}
     >
-      <div className={`mx-auto w-full px-6 py-10 ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
+      <div className={`mx-auto w-full px-6 py-10 ${mostrarAnuncios ? "pagina-conteudo-com-trilhos" : ""} ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
         {onInserir && blocos.length > 0 && (
           <PontoDeInsercao
             permitirEstrutura
@@ -1720,7 +1719,7 @@ export function PageRenderer({
             onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: blocos[0].id, posicao: "antes" })}
           />
         )}
-        {blocos.map((bloco, index) => (
+        {blocos.map((bloco) => (
           <div key={bloco.id}>
             <ItemCanvas bloco={bloco} tema={tema} editor={editor} />
             {onInserir && (
@@ -1730,7 +1729,6 @@ export function PageRenderer({
                 onEscolher={(tipo) => onInserir(tipo, { modo: "lado", destinoId: bloco.id, posicao: "depois" })}
               />
             )}
-            {mostrarAnuncios && index === meio && <AnuncioSlot posicao="meio" />}
           </div>
         ))}
         {onInserir && !blocos.length && (
@@ -1742,13 +1740,23 @@ export function PageRenderer({
             />
           </div>
         )}
-        {mostrarAnuncios && <AnuncioSlot posicao="rodape" />}
         {marca && (
           <p className="pt-8 text-xs uppercase tracking-[0.2em] opacity-40">
             Feito no Single
           </p>
         )}
       </div>
+    </div>
+  );
+
+  if (!mostrarAnuncios) return canvas;
+
+  return (
+    <div className="pagina-publicada-com-anuncios">
+      {canvas}
+      <AnuncioSlot posicao="esquerda" />
+      <AnuncioSlot posicao="direita" />
+      <AnuncioSlot posicao="base" />
     </div>
   );
 }

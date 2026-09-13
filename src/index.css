@@ -921,3 +921,106 @@ button, input, textarea, select {
   opacity: 0;
   transform: scale(0.7);
 }
+
+.pagina-publicada-com-anuncios {
+  position: relative;
+  min-height: 100vh;
+}
+
+@media (min-width: 1200px) {
+  .pagina-conteudo-com-trilhos {
+    padding-left: 13rem;
+    padding-right: 13rem;
+  }
+}
+
+.anuncio-trilho {
+  position: absolute;
+  z-index: 8;
+  box-sizing: border-box;
+  background: #f3f4f6;
+  color: #18181b;
+  font-family: var(--font-sans);
+}
+
+.anuncio-trilho-esquerda,
+.anuncio-trilho-direita {
+  top: 0;
+  bottom: 0;
+  width: 11.5rem;
+  padding: 1.25rem 0.85rem;
+}
+
+.anuncio-trilho-esquerda {
+  left: 0;
+  border-right: 1px solid #e5e7eb;
+}
+
+.anuncio-trilho-direita {
+  right: 0;
+  border-left: 1px solid #e5e7eb;
+}
+
+.anuncio-trilho-base {
+  display: none;
+  position: sticky;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.anuncio-casa {
+  display: block;
+  padding: 0.9rem 0.85rem;
+  border-radius: 1rem;
+  background: #fff;
+  color: #18181b;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.anuncio-casa-rotulo {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.anuncio-casa-titulo {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.anuncio-casa-texto {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+.anuncio-casa-cta {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+@media (max-width: 1199px) {
+  .anuncio-trilho-esquerda,
+  .anuncio-trilho-direita {
+    display: none;
+  }
+
+  .anuncio-trilho-base {
+    display: block;
+  }
+}

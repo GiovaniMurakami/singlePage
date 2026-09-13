@@ -4,22 +4,21 @@ import { ADSENSE_CLIENT, ADSENSE_SLOT, ANUNCIOS_PROPRIOS } from "../../constants
 
 function AnuncioCasa({ campanha }) {
   const interno = campanha.url.startsWith("/");
-  const classe = "block rounded-2xl bg-black/5 px-4 py-4 text-left no-underline";
   const corpo = (
     <>
-      <p className="text-[10px] uppercase tracking-[0.18em] opacity-50">{campanha.rotulo}</p>
-      <p className="mt-1 text-sm font-medium">{campanha.titulo}</p>
-      <p className="mt-1 text-xs leading-5 opacity-70">{campanha.texto}</p>
-      <span className="mt-3 inline-flex rounded-full bg-black/80 px-3 py-1 text-xs text-white">{campanha.cta}</span>
+      <p className="anuncio-casa-rotulo">{campanha.rotulo}</p>
+      <p className="anuncio-casa-titulo">{campanha.titulo}</p>
+      <p className="anuncio-casa-texto">{campanha.texto}</p>
+      <span className="anuncio-casa-cta">{campanha.cta}</span>
     </>
   );
   if (interno) {
-    return <Link to={campanha.url} className={classe}>{corpo}</Link>;
+    return <Link to={campanha.url} className="anuncio-casa">{corpo}</Link>;
   }
-  return <a href={campanha.url} target="_blank" rel="noreferrer sponsored" className={classe}>{corpo}</a>;
+  return <a href={campanha.url} target="_blank" rel="noreferrer sponsored" className="anuncio-casa">{corpo}</a>;
 }
 
-export function AnuncioSlot({ posicao = "rodape" }) {
+export function AnuncioSlot({ posicao = "esquerda" }) {
   const adsense = Boolean(ADSENSE_CLIENT && ADSENSE_SLOT);
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export function AnuncioSlot({ posicao = "rodape" }) {
   }, [adsense, posicao]);
 
   return (
-    <aside className="my-8" aria-label="Publicidade">
+    <aside className={`anuncio-trilho anuncio-trilho-${posicao}`} aria-label="Publicidade">
       {adsense ? (
         <ins
           className="adsbygoogle"
