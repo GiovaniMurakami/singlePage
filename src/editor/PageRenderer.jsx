@@ -204,7 +204,7 @@ function PopoverRapido({
 
 function parteEncaixa(bloco, parte) {
   const id = parte?.id || "";
-  if (id === "botao") return true;
+  if (id === "botao" || id === "foto" || id === "imagem") return true;
   return (bloco?.tipo === "botoes" || bloco?.tipo === "redes" || bloco?.tipo === "navegacao") && id.startsWith("item-");
 }
 
@@ -582,11 +582,14 @@ function BotaoPagina({ item, tema, className = "" }) {
 
 function fotoCapa({ props, onEscolherFoto, className = "", style }) {
   const tamanho = props.fotoTamanho || 112;
-  const raio = props.fotoRaio ?? 999;
+  const parteFoto = props.estiloPartes?.foto || {};
+  const raio = parteFoto.raio === "" || parteFoto.raio == null ? (props.fotoRaio ?? 999) : Number(parteFoto.raio);
   const caixa = estiloDaParte(props, "foto", style);
+  const larga = style?.height === "auto" || className.includes("max-w-full");
   const midia = {
-    width: tamanho,
-    height: tamanho,
+    width: larga ? "100%" : tamanho,
+    height: larga ? "auto" : tamanho,
+    maxHeight: style?.maxHeight,
     borderRadius: raio,
     objectFit: "cover",
     display: "block",
@@ -611,7 +614,19 @@ function fotoCapa({ props, onEscolherFoto, className = "", style }) {
       )}
     </label>
   );
-  return <div className={className} style={caixa}>{conteudo}</div>;
+  return (
+    <div
+      className={className}
+      style={{
+        ...caixa,
+        width: caixa.width || (larga ? undefined : "fit-content"),
+        maxWidth: "100%",
+        overflow: caixa.overflow || "hidden",
+      }}
+    >
+      {conteudo}
+    </div>
+  );
 }
 
 function textosCapa({ props, local, marcar, botaoClass = "mt-8" }) {
@@ -636,7 +651,7 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
   const local = temaDoBloco(props, tema);
   const layoutId = layoutIdDoBloco("capa", props);
   const centro = local.alinhamento !== "esquerda";
-  const foto = fotoCapa({ props, onEscolherFoto, className: centro ? "mx-auto" : "" });
+  const foto = fotoCapa({ props, onEscolherFoto, className: centro ? "mx-auto mb-6" : "mb-6" });
   const textos = textosCapa({ props, local, marcar });
 
   if (layoutId === "split" || layoutId === "split-direita") {
@@ -725,7 +740,7 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
 
   return (
     <section className="py-16" style={caixaDoBloco(props)}>
-      {marcar("foto", <div className="mb-6">{foto}</div>)}
+      {marcar("foto", foto)}
       {textos}
     </section>
   );
@@ -774,10 +789,17 @@ function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
       </div>
     );
   }
+  const estiloImg = estiloDaParte(props, "imagem", estiloMidia(props, "1rem"));
+  const estreita = Boolean(estiloImg.width) && estiloImg.width !== "100%";
   return (
     <figure className="my-8" style={caixaDoBloco(props)}>
       {marcar("imagem", (
-        <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloDaParte(props, "imagem", estiloMidia(props, "1rem"))} />
+        <img
+          src={props.url}
+          alt={props.alt || ""}
+          className={props.display ? "" : estreita ? "mx-auto" : "w-full"}
+          style={estreita ? { display: "block", ...estiloImg } : estiloImg}
+        />
       ))}
       {props.caption && marcar("legenda", (
         <figcaption className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={estiloDaParte(props, "legenda", props.corTexto ? { color: props.corTexto } : undefined)}>
