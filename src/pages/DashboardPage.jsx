@@ -97,6 +97,7 @@ export function DashboardPage() {
               </div>
               <div className="flex gap-3 text-sm">
                 <Link to={`/app/${pagina.id}`} className="text-accent">Editar</Link>
+                <Link to={`/app/${pagina.id}/painel`}>Painel</Link>
                 {pagina.publicada && (
                   <a href={urlPublicaPagina(pagina.slug)} target="_blank" rel="noreferrer">Ver</a>
                 )}

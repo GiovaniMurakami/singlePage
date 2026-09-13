@@ -12,6 +12,7 @@ export const atualizarPagina = (id, dados) => httpClient.put(`/pagina/${id}`, da
 export const publicarPagina = (id, publicada) => httpClient.post(`/pagina/${id}/publicar`, { publicada }).then((r) => r.data);
 export const excluirPagina = (id) => httpClient.delete(`/pagina/${id}`).then((r) => r.data);
 export const buscarPaginaPublica = (slug) => httpClient.get(`/p/${slug}`).then((r) => r.data);
+export const buscarAnalyticsPagina = (id) => httpClient.get(`/pagina/${id}/analytics`).then((r) => r.data);
 
 export const listarPlanos = () => httpClient.get("/assinatura/planos").then((r) => r.data);
 export const criarCheckout = (plano) => httpClient.post("/assinatura/checkout", { plano }).then((r) => r.data);

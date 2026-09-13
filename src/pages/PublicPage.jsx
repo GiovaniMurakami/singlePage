@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { buscarPaginaPublica } from "../services/backendApi";
+import { registrarEventoPagina } from "../services/analytics";
 import { PageRenderer } from "../editor/PageRenderer";
 import { Seo } from "../components/Seo";
 import {
@@ -19,6 +21,26 @@ export function PublicPage() {
     queryFn: () => buscarPaginaPublica(slug),
     enabled: !invalido,
   });
+  const paginaPronta = consulta.data;
+
+  useEffect(() => {
+    if (!paginaPronta?.slug) return undefined;
+    registrarEventoPagina(paginaPronta.slug, { tipo: "visita" });
+    const clicou = (evento) => {
+      const link = evento.target?.closest?.("a");
+      if (!link) return;
+      const href = link.getAttribute("href") || "";
+      if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      registrarEventoPagina(paginaPronta.slug, { tipo: "clique", alvo: href.slice(0, 400) });
+    };
+    const enviou = () => registrarEventoPagina(paginaPronta.slug, { tipo: "formulario" });
+    document.addEventListener("click", clicou, true);
+    document.addEventListener("submit", enviou, true);
+    return () => {
+      document.removeEventListener("click", clicou, true);
+      document.removeEventListener("submit", enviou, true);
+    };
+  }, [paginaPronta?.slug]);
 
   if (invalido) {
     return (

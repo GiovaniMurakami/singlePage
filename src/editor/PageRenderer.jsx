@@ -1,22 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical, Plus, Trash2, X } from "lucide-react";
+import { GripVertical, LayoutTemplate, Plus, Trash2, X } from "lucide-react";
 import { IconeLucide, classeAnimacaoIcone } from "./icones";
 import { AnuncioSlot } from "../components/ui/AnuncioSlot";
 import { TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
-import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloMidia, temaDoBloco } from "./aparencia";
-import { CampoFundo, CamposEspaco, CamposLayout, CartaoAjuste, perfilLayout } from "./ajustesUI";
+import { layoutIdDoBloco, temLayouts } from "./blocoLayouts";
+import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloDaParte, estiloDoItem, estiloMidia, temaDoBloco } from "./aparencia";
+import { FONTES, cssAlinhamento, cssOrientacao } from "./fontes";
 import { InspetorParte } from "./Inspector";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
-import { idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
+import { fonteCaixaDaParte, idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
 import { escutarPopover, liberarPopover, reivindicarPopover } from "./popoverExclusivo";
-
-const FONTES = {
-  sans: "IBM Plex Sans, sans-serif",
-  serif: "Instrument Serif, serif",
-  mono: "IBM Plex Mono, monospace",
-};
+import { escutarSeletorCor, seletorCorAberto } from "./seletorCor";
 
 const LARGURAS = {
   estreita: "36rem",
@@ -81,11 +77,27 @@ function BotaoExcluirHold({ onConfirmar, rotulo = "Excluir" }) {
 
 const semMarca = (_parteId, node) => node;
 
+function inputCorAtivo(caixa) {
+  const ativo = document.activeElement;
+  return ativo instanceof HTMLInputElement && ativo.type === "color" && Boolean(caixa?.contains(ativo));
+}
+
+function ehSeletorDeCorNativo(evento, caixa) {
+  const caminho = typeof evento.composedPath === "function" ? evento.composedPath() : [evento.target];
+  if (caminho.some((no) => no instanceof HTMLInputElement && no.type === "color")) return true;
+  if (inputCorAtivo(caixa)) return true;
+  const alvo = evento.target;
+  if (!(alvo instanceof Node) || !document.documentElement.contains(alvo)) return true;
+  if (alvo === document.documentElement || alvo === document.body) return true;
+  return false;
+}
+
 function PopoverRapido({
   ancoraRef,
   bloco,
   parte,
   tema,
+  selecionado: _selecionado,
   onAtualizar,
   onEscolherImagem,
   onFechar,
@@ -114,35 +126,28 @@ function PopoverRapido({
     };
     colocar();
     const id = window.requestAnimationFrame(colocar);
+    const obs = typeof ResizeObserver !== "undefined" ? new ResizeObserver(colocar) : null;
+    if (caixa.current) obs?.observe(caixa.current);
     window.addEventListener("resize", colocar);
     window.addEventListener("scroll", colocar, true);
     return () => {
       window.cancelAnimationFrame(id);
+      obs?.disconnect();
       window.removeEventListener("resize", colocar);
       window.removeEventListener("scroll", colocar, true);
     };
-  }, [ancoraRef, bloco, parte, ALTURA_MAX]);
+  }, [ancoraRef, parte?.id, ALTURA_MAX]);
 
   useEffect(() => {
-    const clicouFora = (evento) => {
-      if (caixa.current?.contains(evento.target)) return;
-      if (ancoraRef?.current?.contains(evento.target)) return;
-      onFechar?.();
-    };
     const teclou = (evento) => {
-      if (evento.key === "Escape") onFechar?.();
+      if (evento.key === "Escape" && !seletorCorAberto()) onFechar?.();
     };
-    document.addEventListener("pointerdown", clicouFora, true);
     document.addEventListener("keydown", teclou);
-    return () => {
-      document.removeEventListener("pointerdown", clicouFora, true);
-      document.removeEventListener("keydown", teclou);
-    };
-  }, [onFechar, ancoraRef]);
+    return () => document.removeEventListener("keydown", teclou);
+  }, [onFechar]);
 
   if (!bloco || !parte || !onAtualizar) return null;
   const set = (props) => onAtualizar({ ...bloco, props: { ...bloco.props, ...props } });
-  const layout = perfilLayout(bloco.tipo);
 
   return createPortal(
     <div
@@ -153,7 +158,13 @@ function PopoverRapido({
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseEnter={onEntrar}
-      onMouseLeave={onSair}
+      onMouseLeave={(evento) => {
+        if (seletorCorAberto()) return;
+        if (evento.relatedTarget == null) return;
+        if (ehSeletorDeCorNativo(evento, caixa.current)) return;
+        if (inputCorAtivo(caixa.current)) return;
+        onSair?.();
+      }}
     >
       <div className="parte-popover-caixa">
         <div className="parte-popover-topo">
@@ -179,25 +190,17 @@ function PopoverRapido({
             set={set}
             onEscolherImagem={onEscolherImagem}
           />
-          <CartaoAjuste titulo="Fundo" resumo="Cor, degradê ou imagem" abertoPadrao={false}>
-            <CampoFundo
-              fonte={bloco.props}
-              fallbackCor={tema?.fundo || "#ffffff"}
-              onChange={set}
-              onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, "fundoImagem") : undefined}
-            />
-          </CartaoAjuste>
-          <CartaoAjuste titulo={layout.titulo || "Layout e cantos"} abertoPadrao={false}>
-            <CamposLayout props={bloco.props} onChange={set} midia={layout.midia} altura={layout.altura} />
-          </CartaoAjuste>
-          <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-            <CamposEspaco props={bloco.props} onChange={set} />
-          </CartaoAjuste>
         </div>
       </div>
     </div>,
     document.body
   );
+}
+
+function parteEncaixa(bloco, parte) {
+  const id = parte?.id || "";
+  if (id === "botao") return true;
+  return (bloco?.tipo === "botoes" || bloco?.tipo === "redes" || bloco?.tipo === "navegacao") && id.startsWith("item-");
 }
 
 function Parte({
@@ -217,10 +220,12 @@ function Parte({
   const [hover, setHover] = useState(false);
   const [fechado, setFechado] = useState(false);
   const [dono, setDono] = useState(false);
+  const [corAberta, setCorAberta] = useState(false);
   const timer = useRef(0);
   const ativoRef = useRef(ativo);
   ativoRef.current = ativo;
-  const mostrarPopover = onAtualizar && !fechado && dono && (hover || ativo);
+  const mostrarPopover = onAtualizar && !fechado && dono && (hover || ativo || corAberta);
+  const alignSelf = fonteCaixaDaParte(bloco, parte).alignSelf;
 
   const entrar = () => {
     clearTimeout(timer.current);
@@ -230,14 +235,17 @@ function Parte({
   };
 
   const sair = () => {
+    if (seletorCorAberto()) return;
     clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
+      if (seletorCorAberto()) return;
       setHover(false);
       if (!ativoRef.current) liberarPopover(alvo);
     }, 220);
   };
 
   const fecharPopover = () => {
+    if (seletorCorAberto()) return;
     clearTimeout(timer.current);
     setFechado(true);
     setHover(false);
@@ -250,6 +258,7 @@ function Parte({
   }, [alvo]);
 
   useEffect(() => escutarPopover((id) => setDono(id === alvo)), [alvo]);
+  useEffect(() => escutarSeletorCor(setCorAberta), []);
 
   useEffect(() => {
     if (ativo) {
@@ -270,7 +279,8 @@ function Parte({
       title={`Editar ${parte.nome.toLowerCase()}`}
       data-parte-ativa={ativo ? "true" : undefined}
       data-parte-hover={hover ? "true" : undefined}
-      className={`parte-alvo ${className}`}
+      className={`parte-alvo ${parteEncaixa(bloco, parte) ? "parte-alvo-encaixe" : ""} ${className}`}
+      style={alignSelf ? { alignSelf } : undefined}
       onMouseEnter={entrar}
       onMouseLeave={sair}
       onClick={(evento) => {
@@ -304,6 +314,7 @@ function Parte({
           bloco={bloco}
           parte={parte}
           tema={tema}
+          selecionado={ativo}
           onAtualizar={onAtualizar}
           onEscolherImagem={onEscolherImagem}
           onFechar={fecharPopover}
@@ -490,13 +501,37 @@ function estiloBotao(estilo, tema, item = {}) {
   }
   if (estilo === "contorno") {
     return {
-      className: "rounded-full border",
+      className: "border",
       style: { borderColor: item.fundo || tema.destaque, color: item.cor || tema.texto, background: "transparent" },
     };
   }
   return {
-    className: "rounded-full",
+    className: "",
     style: { background: item.fundo || tema.destaque, color: item.cor || "#ffffff" },
+  };
+}
+
+function raioPadraoBotao(item = {}) {
+  if (item.raio !== "" && item.raio != null) return undefined;
+  if ((item.estilo || "preenchido") === "texto") return undefined;
+  return "999px";
+}
+
+function itemBotaoCapa(props, extras = {}) {
+  return {
+    rotulo: props.cta,
+    url: props.url,
+    estilo: props.estiloBotao,
+    tamanho: props.tamanhoBotao,
+    novaAba: props.novaAba,
+    fundo: props.fundoBotao,
+    cor: props.corBotao,
+    hoverFundo: props.hoverFundo,
+    hoverCor: props.hoverCor,
+    hoverEscala: props.hoverEscala,
+    hoverSombra: props.hoverSombra,
+    ...(props.estiloPartes?.botao || {}),
+    ...extras,
   };
 }
 
@@ -519,42 +554,36 @@ function estiloInterativo(item, base = {}) {
 function BotaoPagina({ item, tema, className = "" }) {
   const visual = estiloBotao(item.estilo || "preenchido", tema, item);
   const tamanho = classeBotaoTamanho(item.tamanho || item.tamanhoBotao);
+  const estilo = estiloDoItem(item, estiloInterativo({
+    ...item,
+    fundo: item.fundo || visual.style.background,
+    cor: item.cor || visual.style.color,
+    borda: visual.style.borderColor,
+  }, visual.style));
+  const raioPadrao = raioPadraoBotao(item);
+  if (raioPadrao) estilo.borderRadius = raioPadrao;
   return (
     <a
       href={item.url || "#"}
       target={item.novaAba ? "_blank" : undefined}
       rel={item.novaAba ? "noreferrer" : undefined}
       className={`item-interativo inline-flex items-center justify-center font-medium ${tamanho} ${visual.className} ${className}`}
-      style={estiloInterativo({
-        ...item,
-        fundo: item.fundo || visual.style.background,
-        cor: item.cor || visual.style.color,
-        borda: visual.style.borderColor,
-      }, visual.style)}
+      style={estilo}
     >
       {item.rotulo}
     </a>
   );
 }
 
-function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
-  const local = temaDoBloco(props, tema);
-  const centro = local.alinhamento !== "esquerda";
+function fotoCapa({ props, onEscolherFoto, className = "", style }) {
   const tamanho = props.fotoTamanho || 112;
   const raio = props.fotoRaio ?? 999;
-  const foto = props.fotoUrl ? (
-    <img
-      src={props.fotoUrl}
-      alt=""
-      className={`mb-6 object-cover ${centro ? "mx-auto" : ""}`}
-      style={{ width: tamanho, height: tamanho, borderRadius: raio }}
-    />
-  ) : (
-    <label
-      className={`capa-foto-vazia mb-6 ${centro ? "mx-auto" : ""}`}
-      style={{ width: tamanho, height: tamanho, borderRadius: raio }}
-      onClick={(evento) => evento.stopPropagation()}
-    >
+  const visual = estiloDaParte(props, "foto", { width: tamanho, height: tamanho, borderRadius: raio, ...style });
+  if (props.fotoUrl) {
+    return <img src={props.fotoUrl} alt="" className={`object-cover ${className}`} style={visual} />;
+  }
+  return (
+    <label className={`capa-foto-vazia ${className}`} style={visual} onClick={(evento) => evento.stopPropagation()}>
       <span>Foto</span>
       <span className="capa-foto-vazia-dica">Clique para adicionar</span>
       {onEscolherFoto && (
@@ -571,38 +600,121 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
       )}
     </label>
   );
+}
 
+function textosCapa({ props, local, marcar, botaoClass = "mt-8" }) {
   return (
-    <section className="py-16" style={caixaDoBloco(props)}>
-      {marcar("foto", foto)}
+    <>
       {marcar("titulo", (
-        <h1 className={classeTitulo("capa", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h1>
+        <h1 className={classeTitulo("capa", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h1>
       ))}
       {props.subtitulo && marcar("subtitulo", (
-        <p className={`mt-4 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-80"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+        <p className={`mt-4 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-80"}`} style={estiloDaParte(props, "subtitulo", props.corTexto ? { color: props.corTexto } : undefined)}>
           {props.subtitulo}
         </p>
       ))}
       {props.cta && marcar("botao", (
-        <div className="mt-8">
-          <BotaoPagina
-            tema={local}
-            item={{
-              rotulo: props.cta,
-              url: props.url,
-              estilo: props.estiloBotao,
-              tamanho: props.tamanhoBotao,
-              novaAba: props.novaAba,
-              fundo: props.fundoBotao,
-              cor: props.corBotao,
-              hoverFundo: props.hoverFundo,
-              hoverCor: props.hoverCor,
-              hoverEscala: props.hoverEscala,
-              hoverSombra: props.hoverSombra,
-            }}
-          />
+        <BotaoPagina tema={local} item={itemBotaoCapa(props)} />
+      ), botaoClass)}
+    </>
+  );
+}
+
+function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
+  const local = temaDoBloco(props, tema);
+  const layoutId = layoutIdDoBloco("capa", props);
+  const centro = local.alinhamento !== "esquerda";
+  const foto = fotoCapa({ props, onEscolherFoto, className: centro ? "mx-auto" : "" });
+  const textos = textosCapa({ props, local, marcar });
+
+  if (layoutId === "split" || layoutId === "split-direita") {
+    const invertido = layoutId === "split-direita";
+    return (
+      <section className="py-16" style={caixaDoBloco(props)}>
+        <div className={`grid items-center gap-8 md:grid-cols-2 ${invertido ? "md:[&>:first-child]:order-2" : ""}`}>
+          {marcar("foto", fotoCapa({ props, onEscolherFoto }))}
+          <div className="min-w-0 text-left">{textosCapa({ props, local, marcar, botaoClass: "mt-6" })}</div>
         </div>
-      ))}
+      </section>
+    );
+  }
+
+  if (layoutId === "fullbleed") {
+    return (
+      <section
+        className="relative flex min-h-[26rem] items-end overflow-hidden py-16"
+        style={{
+          ...caixaDoBloco(props),
+          ...(props.fotoUrl ? { backgroundImage: `url(${props.fotoUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+        }}
+      >
+        {props.fotoUrl && <div className="absolute inset-0 bg-black/45" />}
+        <div className="relative z-10 w-full" style={props.fotoUrl ? { color: "#fff" } : undefined}>
+          {!props.fotoUrl && marcar("foto", fotoCapa({ props, onEscolherFoto, className: "mx-auto mb-6" }))}
+          {props.fotoUrl && marcar("foto", <span className="sr-only">Foto de fundo</span>)}
+          {textosCapa({ props, local, marcar })}
+        </div>
+      </section>
+    );
+  }
+
+  if (layoutId === "editorial") {
+    return (
+      <section className="py-16 text-left" style={caixaDoBloco(props)}>
+        {marcar("titulo", (
+          <h1 className={classeTitulo("capa", props.tamanhoTitulo || "enorme")} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h1>
+        ))}
+        <div className="mt-8">{marcar("foto", fotoCapa({ props, onEscolherFoto, className: "max-w-full", style: { height: "auto", maxHeight: 360 } }))}</div>
+        {props.subtitulo && marcar("subtitulo", (
+          <p className={`mt-6 ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-80"}`} style={estiloDaParte(props, "subtitulo", props.corTexto ? { color: props.corTexto } : undefined)}>
+            {props.subtitulo}
+          </p>
+        ))}
+        {props.cta && marcar("botao", (
+          <BotaoPagina tema={local} item={itemBotaoCapa(props)} />
+        ), "mt-8")}
+      </section>
+    );
+  }
+
+  if (layoutId === "cartao") {
+    return (
+      <section className="py-12" style={caixaDoBloco({ ...props, corFundo: undefined, fundoModo: undefined })}>
+        <div className="mx-auto max-w-md rounded-[1.6rem] px-6 py-10 ring-1 ring-line" style={caixaDoBloco({ ...props, margemCima: "", margemBaixo: "" })}>
+          {marcar("foto", fotoCapa({ props, onEscolherFoto, className: "mx-auto mb-6" }))}
+          {textosCapa({ props, local, marcar })}
+        </div>
+      </section>
+    );
+  }
+
+  if (layoutId === "compacta") {
+    return (
+      <section className="py-10" style={caixaDoBloco(props)}>
+        <div className="flex flex-wrap items-center gap-4 text-left">
+          {marcar("foto", fotoCapa({ props, onEscolherFoto }))}
+          <div className="min-w-0 flex-1">
+            {marcar("titulo", (
+              <h1 className={classeTitulo("capa", props.tamanhoTitulo || "medio")} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h1>
+            ))}
+            {props.subtitulo && marcar("subtitulo", (
+              <p className={`mt-1 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-80"}`} style={estiloDaParte(props, "subtitulo", props.corTexto ? { color: props.corTexto } : undefined)}>
+                {props.subtitulo}
+              </p>
+            ))}
+          </div>
+          {props.cta && marcar("botao", (
+            <BotaoPagina tema={local} item={itemBotaoCapa(props, { tamanho: props.tamanhoBotao || "pequeno" })} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-16" style={caixaDoBloco(props)}>
+      {marcar("foto", <div className="mb-6">{foto}</div>)}
+      {textos}
     </section>
   );
 }
@@ -611,10 +723,10 @@ function BlocoTexto({ props, marcar = semMarca }) {
   return (
     <section className="py-10" style={caixaDoBloco(props)}>
       {props.titulo && marcar("titulo", (
-        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
       {props.corpo && marcar("corpo", (
-        <p className={`whitespace-pre-wrap ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-85"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+        <p className={`whitespace-pre-wrap ${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-85"}`} style={estiloDaParte(props, "corpo", props.corTexto ? { color: props.corTexto } : undefined)}>
           {props.corpo}
         </p>
       ), "mt-3")}
@@ -653,10 +765,10 @@ function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
   return (
     <figure className="my-8" style={caixaDoBloco(props)}>
       {marcar("imagem", (
-        <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloMidia(props, "1rem")} />
+        <img src={props.url} alt={props.alt || ""} className={props.display ? "" : "w-full"} style={estiloDaParte(props, "imagem", estiloMidia(props, "1rem"))} />
       ))}
       {props.caption && marcar("legenda", (
-        <figcaption className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+        <figcaption className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-60"}`} style={estiloDaParte(props, "legenda", props.corTexto ? { color: props.corTexto } : undefined)}>
           {props.caption}
         </figcaption>
       ), "mt-2")}
@@ -666,41 +778,101 @@ function BlocoImagem({ props, onEnviarImagem, marcar = semMarca }) {
 
 function BlocoBotoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
+  const layoutId = layoutIdDoBloco("botoes", props);
+  const classe = props.display
+    ? "py-6"
+    : layoutId === "linha"
+      ? "flex flex-wrap justify-center gap-3 py-6"
+      : layoutId === "pills"
+        ? "flex flex-wrap justify-center gap-2 py-6"
+        : "flex flex-col gap-3 py-6";
+  const botaoClass = layoutId === "linha" ? "min-h-12 px-6" : layoutId === "pills" ? "min-h-9 px-4 text-xs" : "min-h-12 w-full";
   return (
-    <div className={props.display ? "py-6" : "flex flex-col gap-3 py-6"} style={caixaDoBloco(props)}>
+    <div className={classe} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
         <div key={`${item.rotulo}-${index}`} className="contents">
-          {marcar(`item-${index}`, <BotaoPagina item={item} tema={local} className="min-h-12 w-full" />)}
+          {marcar(`item-${index}`, <BotaoPagina item={item} tema={local} className={botaoClass} />)}
         </div>
       ))}
     </div>
   );
 }
 
+function itemGaleria({ url, index, props, interativo, setAberta, marcar, aspecto = "aspect-square", extraClass = "" }) {
+  if (!url) {
+    return <div className={`${aspecto} border border-dashed border-line ${extraClass}`} style={estiloMidia(props, "1rem")} />;
+  }
+  return marcar(`item-${index}`, (
+    <button
+      type="button"
+      className={`w-full overflow-hidden ${extraClass}`}
+      style={estiloDaParte(props, `item-${index}`, estiloMidia(props, "1rem"))}
+      onClick={() => interativo && setAberta(url)}
+    >
+      <img src={url} alt="" className={`${aspecto} w-full`} style={{ objectFit: props.objectFit || "cover", display: "block" }} />
+    </button>
+  ));
+}
+
 function BlocoGaleria({ props, interativo, marcar = semMarca }) {
   const urls = (props.urls || []).filter(Boolean);
+  const lista = urls.length ? urls : ["", "", ""];
   const [aberta, setAberta] = useState(null);
+  const layoutId = layoutIdDoBloco("galeria", props);
   const custom = Boolean(props.display);
-  return (
-    <>
-      <div className={custom ? "w-full py-8" : "grid w-full gap-3 py-8 sm:grid-cols-2"} style={caixaDoBloco(props)}>
-        {(urls.length ? urls : ["", "", ""]).map((url, index) => (
-          <div key={url ? url + index : `vazia-${index}`} className="contents">
-            {url
-              ? marcar(`item-${index}`, (
-                <button
-                  type="button"
-                  className="w-full overflow-hidden"
-                  style={estiloMidia(props, "1rem")}
-                  onClick={() => interativo && setAberta(url)}
-                >
-                  <img src={url} alt="" className="aspect-square w-full" style={{ objectFit: props.objectFit || "cover", display: "block" }} />
-                </button>
-              ))
-              : <div className="aspect-square border border-dashed border-line" style={estiloMidia(props, "1rem")} />}
+  const item = (url, index, extra) => itemGaleria({ url, index, props, interativo, setAberta, marcar, ...extra });
+
+  let grade;
+  if (custom) {
+    grade = (
+      <div className="w-full py-8" style={caixaDoBloco(props)}>
+        {lista.map((url, index) => <div key={url ? url + index : `vazia-${index}`} className="contents">{item(url, index)}</div>)}
+      </div>
+    );
+  } else if (layoutId === "faixa") {
+    grade = (
+      <div className="flex gap-3 overflow-x-auto py-8" style={caixaDoBloco(props)}>
+        {lista.map((url, index) => (
+          <div key={url ? url + index : `vazia-${index}`} className="w-[min(70%,16rem)] shrink-0">
+            {item(url, index)}
           </div>
         ))}
       </div>
+    );
+  } else if (layoutId === "destaque") {
+    const [primeira, ...resto] = lista;
+    grade = (
+      <div className="grid gap-3 py-8" style={caixaDoBloco(props)}>
+        {item(primeira, 0, { aspecto: "aspect-[2/1]" })}
+        {resto.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {resto.map((url, index) => <div key={url ? url + index : `vazia-${index}`}>{item(url, index + 1)}</div>)}
+          </div>
+        )}
+      </div>
+    );
+  } else if (layoutId === "mosaico") {
+    grade = (
+      <div className="grid gap-3 py-8 sm:grid-cols-2" style={caixaDoBloco(props)}>
+        {lista.map((url, index) => (
+          <div key={url ? url + index : `vazia-${index}`} className={index === 0 ? "sm:col-span-2" : ""}>
+            {item(url, index, { aspecto: index === 0 ? "aspect-[2/1]" : "aspect-square" })}
+          </div>
+        ))}
+      </div>
+    );
+  } else {
+    const colunas = layoutId === "grade-3" ? "sm:grid-cols-3" : "sm:grid-cols-2";
+    grade = (
+      <div className={`grid w-full gap-3 py-8 ${colunas}`} style={caixaDoBloco(props)}>
+        {lista.map((url, index) => <div key={url ? url + index : `vazia-${index}`} className="contents">{item(url, index)}</div>)}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {grade}
       {aberta && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
@@ -714,32 +886,46 @@ function BlocoGaleria({ props, interativo, marcar = semMarca }) {
   );
 }
 
-function BlocoDepoimentos({ props, marcar = semMarca }) {
+function cardDepoimento({ item, props, citacao }) {
   return (
-    <div className="grid gap-4 py-8" style={caixaDoBloco(props)}>
-      {(props.itens || []).map((item, index) => (
-        <div key={index} className="contents">
-          {marcar(`item-${index}`, (
-            <blockquote className="border border-line px-5 py-4 text-left" style={estiloMidia(props, "1rem")}>
-              <div className="flex items-start gap-3">
-                {item.fotoUrl ? (
-                  <img src={item.fotoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
-                ) : (
-                  <span className="depoimento-foto-vazia" aria-hidden>
-                    {(item.autor || "?").slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className={classeTitulo("texto", props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>“{item.citacao}”</p>
-                  {item.autor && (
-                    <footer className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
-                      {item.autor}
-                    </footer>
-                  )}
-                </div>
-              </div>
-            </blockquote>
-          ))}
+    <blockquote className={`border border-line px-5 py-4 ${citacao ? "text-center" : "text-left"}`} style={estiloDoItem(item, estiloMidia(props, "1rem"))}>
+      <div className={citacao ? "flex flex-col items-center gap-3" : "flex items-start gap-3"}>
+        {item.fotoUrl ? (
+          <img src={item.fotoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="depoimento-foto-vazia" aria-hidden>
+            {(item.autor || "?").slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className={classeTitulo("texto", citacao ? "medio" : props.tamanhoTitulo || "pequeno")} style={props.corTitulo ? { color: props.corTitulo } : undefined}>“{item.citacao}”</p>
+          {item.autor && (
+            <footer className={`mt-2 ${classeTexto(props.tamanhoTexto || "pequeno")} ${props.corTexto ? "" : "opacity-60"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+              {item.autor}
+            </footer>
+          )}
+        </div>
+      </div>
+    </blockquote>
+  );
+}
+
+function BlocoDepoimentos({ props, marcar = semMarca }) {
+  const layoutId = layoutIdDoBloco("depoimentos", props);
+  const itens = props.itens || [];
+  const citacao = layoutId === "citacao";
+  const classe = props.display
+    ? "py-8"
+    : layoutId === "grade"
+      ? "grid gap-4 py-8 sm:grid-cols-2"
+      : layoutId === "faixa"
+        ? "flex gap-4 overflow-x-auto py-8"
+        : "grid gap-4 py-8";
+  return (
+    <div className={classe} style={caixaDoBloco(props)}>
+      {itens.map((item, index) => (
+        <div key={index} className={layoutId === "faixa" ? "w-[min(85%,20rem)] shrink-0" : "contents"}>
+          {marcar(`item-${index}`, cardDepoimento({ item, props, citacao }))}
         </div>
       ))}
     </div>
@@ -848,13 +1034,15 @@ function BlocoFormulario({ props, tema, interativo, marcar = semMarca }) {
   };
 
   const local = temaDoBloco(props, tema);
+  const estiloBotaoEnvio = estiloDaParte(props, "botao", { background: local.destaque });
+  if (raioPadraoBotao(props.estiloPartes?.botao || {})) estiloBotaoEnvio.borderRadius = "999px";
   return (
     <form className="py-10" onSubmit={enviar} id="formulario" style={caixaDoBloco(props)}>
       {props.titulo && marcar("titulo", (
-        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
       {marcar("campos", (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" style={estiloDaParte(props, "campos")}>
           {campos.map((campo) => (
             <CampoPagina
               key={campo.id}
@@ -868,11 +1056,7 @@ function BlocoFormulario({ props, tema, interativo, marcar = semMarca }) {
         </div>
       ), "mt-4")}
       {marcar("botao", (
-        <button
-          type="submit"
-          className="min-h-12 w-full rounded-full px-6 text-sm font-medium text-white"
-          style={{ background: local.destaque }}
-        >
+        <button type="submit" className="min-h-12 w-full px-6 text-sm font-medium text-white" style={estiloBotaoEnvio}>
           {props.botao || "Enviar"}
         </button>
       ), "mt-3")}
@@ -892,7 +1076,7 @@ function BlocoRedes({ props, marcar = semMarca }) {
       {(props.itens || []).map((item, index) => (
         <div key={index} className="contents">
           {marcar(`item-${index}`, (
-            <a href={item.url || "#"} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
+            <a href={item.url || "#"} className="underline-offset-4 hover:underline" style={estiloDoItem(item, props.corTexto ? { color: props.corTexto } : undefined)}>
               {item.rotulo}
             </a>
           ))}
@@ -916,7 +1100,7 @@ function BlocoNavegacao({ props, tema, marcar = semMarca }) {
       {(props.itens || []).map((item, index) => (
         <div key={index} className="contents">
           {marcar(`item-${index}`, (
-            <a href={`#${item.ancora || ""}`} className="underline-offset-4 hover:underline" style={props.corTexto ? { color: props.corTexto } : undefined}>
+            <a href={`#${item.ancora || ""}`} className="underline-offset-4 hover:underline" style={estiloDoItem(item, props.corTexto ? { color: props.corTexto } : undefined)}>
               {item.rotulo}
             </a>
           ))}
@@ -941,10 +1125,10 @@ function BlocoSecao({ props, tema, interativo, filhos, marcar = semMarca }) {
   return (
     <section id={props.ancora} className="scroll-mt-20 pt-12" style={caixaDoBloco(props)}>
       {props.titulo && marcar("titulo", (
-        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
       {props.subtitulo && marcar("subtitulo", (
-        <p className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-70"}`} style={props.corTexto ? { color: props.corTexto } : undefined}>
+        <p className={`${classeTexto(props.tamanhoTexto)} ${props.corTexto ? "" : "opacity-70"}`} style={estiloDaParte(props, "subtitulo", props.corTexto ? { color: props.corTexto } : undefined)}>
           {props.subtitulo}
         </p>
       ), "mt-2")}
@@ -976,15 +1160,28 @@ function BlocoRodape({ props }) {
 
 function BlocoCartoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
+  const layoutId = layoutIdDoBloco("cartoes", props);
   const colunas = props.colunas || 3;
   const custom = Boolean(props.display);
   const grade = colunas === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : colunas === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
+  const classe = custom
+    ? "py-8"
+    : layoutId === "lista"
+      ? "grid gap-4 py-8"
+      : layoutId === "faixa"
+        ? "flex gap-4 overflow-x-auto py-8"
+        : layoutId === "destaque"
+          ? "grid gap-4 py-8"
+          : `grid gap-4 py-8 ${grade}`;
   return (
-    <div className={custom ? "py-8" : `grid gap-4 py-8 ${grade}`} style={caixaDoBloco({ ...props, corFundo: undefined })}>
+    <div className={classe} style={caixaDoBloco({ ...props, corFundo: undefined })}>
       {(props.itens || []).map((item, index) => (
-        <div key={`${item.titulo}-${index}`} className="contents">
+        <div
+          key={`${item.titulo}-${index}`}
+          className={layoutId === "faixa" ? "w-[min(80%,16rem)] shrink-0" : layoutId === "destaque" && index === 0 ? "sm:col-span-full" : "contents"}
+        >
           {marcar(`item-${index}`, (
-            <article className="h-full border border-line px-5 py-5 text-left" style={{ ...(props.corFundo ? { background: props.corFundo, color: props.corTexto || undefined } : undefined), ...estiloMidia(props, "1rem") }}>
+            <article className="h-full border border-line px-5 py-5 text-left" style={estiloDoItem(item, { ...(props.corFundo ? { background: props.corFundo, color: props.corTexto || undefined } : undefined), ...estiloMidia(props, "1rem") })}>
               {item.icone && (
                 <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `${local.destaque}22`, color: local.destaque }}>
                   <IconeLucide nome={item.icone} size={18} color="currentColor" />
@@ -1027,19 +1224,22 @@ function BlocoGrade({ props, tema, interativo, filhos }) {
 }
 
 function BlocoFaixa({ props, tema, interativo, filhos, marcar = semMarca }) {
+  const layoutId = layoutIdDoBloco("faixa", props);
   const faixaTema = {
     ...tema,
     fundo: props.fundo || "#111111",
     texto: props.texto || "#f5f5f7",
     destaque: props.destaque || tema.destaque,
   };
+  const alinhamento = props.alinhamento || (layoutId === "esquerda" ? "esquerda" : "centro");
+  const padding = layoutId === "cta" ? "py-20" : "py-12";
   return (
-    <section className="-mx-6 my-6 px-6 py-12" style={{ ...cssFundo(props, "fundo"), color: faixaTema.texto, textAlign: props.alinhamento === "esquerda" ? "left" : props.alinhamento === "centro" ? "center" : undefined }}>
+    <section className={`-mx-6 my-6 px-6 ${padding}`} style={{ ...cssFundo(props, "fundo"), ...caixaDoBloco({ ...props, corFundo: undefined }), color: faixaTema.texto, textAlign: alinhamento === "esquerda" ? "left" : "center" }}>
       {props.titulo && marcar("titulo", (
-        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={props.corTitulo ? { color: props.corTitulo } : undefined}>{props.titulo}</h2>
+        <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
       {props.subtitulo && marcar("subtitulo", (
-        <p className={`${classeTexto(props.tamanhoTexto)} opacity-80`}>{props.subtitulo}</p>
+        <p className={`${classeTexto(props.tamanhoTexto)} opacity-80`} style={estiloDaParte(props, "subtitulo")}>{props.subtitulo}</p>
       ), "mt-3")}
       {filhos ?? filhosPadrao(props.blocos, faixaTema, interativo)}
     </section>
@@ -1047,14 +1247,22 @@ function BlocoFaixa({ props, tema, interativo, filhos, marcar = semMarca }) {
 }
 
 function BlocoIcones({ props, marcar = semMarca }) {
+  const layoutId = layoutIdDoBloco("icones", props);
+  const classe = props.display
+    ? "py-6"
+    : layoutId === "faixa"
+      ? "flex flex-wrap items-center justify-between gap-4 py-6"
+      : layoutId === "com-nome"
+        ? "flex flex-wrap items-start justify-center gap-5 py-6"
+        : "flex flex-wrap items-center justify-center gap-3 py-6";
   return (
-    <div className={props.display ? "py-6" : "flex flex-wrap items-center justify-center gap-3 py-6"} style={caixaDoBloco(props)}>
+    <div className={classe} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => {
         const lado = (item.tamanho || 22) + (item.padding || 12) * 2;
         const visual = (
           <span
             className="item-interativo"
-            style={{
+            style={estiloDoItem(item, {
               ...estiloInterativo(item),
               display: "inline-flex",
               alignItems: "center",
@@ -1062,20 +1270,26 @@ function BlocoIcones({ props, marcar = semMarca }) {
               width: lado,
               height: lado,
               borderRadius: item.raio ?? 18,
-            }}
+            })}
           >
             <span className={classeAnimacaoIcone(item.animacao)}>
               <IconeLucide nome={item.nome} size={item.tamanho || 22} color="currentColor" strokeWidth={item.traco || 2} />
             </span>
           </span>
         );
+        const rotulo = layoutId === "com-nome" ? (
+          <span className="flex flex-col items-center gap-2">
+            {visual}
+            <span className="text-xs opacity-70">{item.nome}</span>
+          </span>
+        ) : visual;
         return (
           <div key={`${item.nome}-${index}`} className="contents">
             {marcar(`item-${index}`, item.url ? (
               <a href={item.url} target={item.novaAba ? "_blank" : undefined} rel={item.novaAba ? "noreferrer" : undefined} aria-label={item.nome}>
-                {visual}
+                {rotulo}
               </a>
-            ) : <span>{visual}</span>)}
+            ) : <span>{rotulo}</span>)}
           </div>
         );
       })}
@@ -1169,6 +1383,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
     onRemoverParte,
     onInserir,
     onAtualizar,
+    onAbrirLayouts,
   } = editor || {};
   const interativo = !onSelect;
   const podeArrastar = Boolean(onInicioArrasto);
@@ -1400,6 +1615,19 @@ function ItemCanvas({ bloco, tema, editor, faixaTema }) {
                   : nomeDoTipo(bloco.tipo)}
               </button>
             )}
+            {ativo && temLayouts(bloco.tipo) && onAbrirLayouts && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 border-l border-white/15 px-2 py-1 text-[11px] font-medium"
+                onClick={(evento) => {
+                  evento.stopPropagation();
+                  onAbrirLayouts(bloco.id);
+                }}
+              >
+                <LayoutTemplate size={12} />
+                Layouts
+              </button>
+            )}
           </div>
         )}
         {ativo && onRemover && !parteAtiva && (
@@ -1422,6 +1650,7 @@ export function PageRenderer({
   pagina,
   marca = false,
   anuncios = false,
+  compacto = false,
   selecionadoId,
   onSelect,
   arrasto,
@@ -1433,6 +1662,7 @@ export function PageRenderer({
   onRemoverParte,
   onInserir,
   onAtualizar,
+  onAbrirLayouts,
 }) {
   const tema = pagina.tema || {};
   const interativo = !onSelect;
@@ -1452,18 +1682,20 @@ export function PageRenderer({
       onRemoverParte,
       onInserir,
       onAtualizar,
+      onAbrirLayouts,
     }
     : null;
 
   return (
     <div
-      className={onSelect ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
+      className={onSelect || compacto ? "flex w-full flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),
         color: tema.texto,
         fontFamily: FONTES[tema.fonte] || FONTES.sans,
-        textAlign: tema.alinhamento === "esquerda" ? "left" : "center",
+        textAlign: cssAlinhamento(tema.alinhamento) || "center",
+        ...cssOrientacao(tema.orientacao),
       }}
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}

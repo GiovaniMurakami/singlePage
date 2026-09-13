@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { atualizarPagina, buscarPagina, mensagemErro, publicarPagina, uploadImagem } from "../services/backendApi";
 import { useToast } from "../context/ToastContext";
@@ -38,7 +38,7 @@ export function EditorPage() {
     },
     onSuccess: (data) => {
       setPagina(data);
-      addToast("Página salva.");
+      addToast("Rascunho salvo.");
     },
     onError: (error) => addToast(mensagemErro(error), "erro"),
   });
@@ -121,7 +121,12 @@ export function EditorPage() {
               />
             </span>
           </label>
-          <button type="button" onClick={() => salvar.mutate()} className="rounded-full border border-line px-4 py-2 text-sm">Salvar</button>
+          <Link to={`/app/${paginaId}/painel`} className="rounded-full px-4 py-2 text-sm text-accent">
+            Painel
+          </Link>
+          <button type="button" onClick={() => salvar.mutate()} className="rounded-full border border-line px-4 py-2 text-sm">
+            {salvar.isPending ? "Salvando…" : "Salvar rascunho"}
+          </button>
           <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="rounded-full bg-ink px-4 py-2 text-sm text-paper">
             {pagina.publicada ? "Despublicar" : "Publicar"}
           </button>

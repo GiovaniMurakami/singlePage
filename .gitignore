@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.npm/
+.DS_Store
 .env
 .env.local
 .env.homolog

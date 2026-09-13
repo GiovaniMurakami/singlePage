@@ -554,10 +554,17 @@ button, input, textarea, select {
 /* Partes de um bloco: passe o mouse para ver o nome, clique para editar só aquilo. */
 .parte-alvo {
   position: relative;
+  overflow: visible;
   border-radius: 0.75rem;
   cursor: pointer;
   outline: none;
   transition: box-shadow 140ms ease;
+}
+
+.parte-alvo-encaixe {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
 }
 
 .parte-alvo:hover {
@@ -570,8 +577,8 @@ button, input, textarea, select {
 
 .parte-etiqueta {
   position: absolute;
-  top: -0.55rem;
-  left: 0.5rem;
+  top: 0.28rem;
+  left: 0.45rem;
   z-index: 15;
   padding: 0.1rem 0.4rem;
   border-radius: 0.4rem;

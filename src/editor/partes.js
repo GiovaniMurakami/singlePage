@@ -55,6 +55,51 @@ export function indiceDaParte(parteId) {
   return casa ? Number(casa[1]) : null;
 }
 
+export function chaveListaDoTipo(tipo) {
+  return PARTES_LISTA[tipo]?.chave || null;
+}
+
+function caixaVaiNoItem(bloco, parte) {
+  const indice = indiceDaParte(parte?.id);
+  const chave = chaveListaDoTipo(bloco?.tipo);
+  return indice !== null && chave && chave !== "urls";
+}
+
+/** Fundo, padding e layout desta parte — o item, não o bloco. */
+export function fonteCaixaDaParte(bloco, parte) {
+  if (!bloco || !parte) return {};
+  if (caixaVaiNoItem(bloco, parte)) {
+    return (bloco.props[chaveListaDoTipo(bloco.tipo)] || [])[indiceDaParte(parte.id)] || {};
+  }
+  return bloco.props.estiloPartes?.[parte.id] || {};
+}
+
+export function aplicarCaixaNaParte(bloco, parte, extras) {
+  if (!bloco || !parte) return bloco;
+  if (caixaVaiNoItem(bloco, parte)) {
+    const chave = chaveListaDoTipo(bloco.tipo);
+    const indice = indiceDaParte(parte.id);
+    const itens = bloco.props[chave] || [];
+    return {
+      ...bloco,
+      props: {
+        ...bloco.props,
+        [chave]: itens.map((item, i) => (i === indice ? { ...item, ...extras } : item)),
+      },
+    };
+  }
+  return {
+    ...bloco,
+    props: {
+      ...bloco.props,
+      estiloPartes: {
+        ...(bloco.props.estiloPartes || {}),
+        [parte.id]: { ...(bloco.props.estiloPartes?.[parte.id] || {}), ...extras },
+      },
+    },
+  };
+}
+
 export function partesDoBloco(bloco) {
   if (!bloco) return [];
   const fixas = PARTES_FIXAS[bloco.tipo];

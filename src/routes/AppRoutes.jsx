@@ -8,6 +8,7 @@ import { PrecosPage } from "../pages/PrecosPage";
 import { ContaPage } from "../pages/ContaPage";
 import { PublicPage } from "../pages/PublicPage";
 import { GuestEditorPage } from "../pages/GuestEditorPage";
+import { AnalyticsPage } from "../pages/AnalyticsPage";
 
 function Protected({ children }) {
   const { autenticado, ready } = useAuth();
@@ -26,6 +27,7 @@ export function AppRoutes() {
       <Route path="/precos" element={<PrecosPage />} />
       <Route path="/p/:slug" element={<PublicPage />} />
       <Route path="/app" element={<Protected><DashboardPage /></Protected>} />
+      <Route path="/app/:paginaId/painel" element={<Protected><AnalyticsPage /></Protected>} />
       <Route path="/app/:paginaId" element={<Protected><EditorPage /></Protected>} />
       <Route path="/conta" element={<Protected><ContaPage /></Protected>} />
       {/* Endereço público: singlepage.com.br/{nome-da-pagina} */}

@@ -15,7 +15,11 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
           className={`inline-flex items-center justify-center gap-1 rounded-full px-3 py-1.5 text-xs ${
             wrap ? "border border-line" : "flex-1"
           } ${valor === item.id ? "bg-ink text-paper" : "ui-dica"}`}
-          onClick={() => onChange(item.id)}
+          onClick={(evento) => {
+            evento.preventDefault();
+            evento.stopPropagation();
+            onChange(item.id);
+          }}
         >
           {item.icone}
           {item.nome}
@@ -27,11 +31,11 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
 
 export function Campo({ label, dica, children }) {
   return (
-    <label className="block space-y-1.5">
+    <div className="block space-y-1.5">
       <span className="ui-dica block text-xs uppercase tracking-[0.16em]">{label}</span>
       {dica ? <span className="ui-dica block text-[11px] leading-4">{dica}</span> : null}
       {children}
-    </label>
+    </div>
   );
 }
 
@@ -78,8 +82,15 @@ export function ListaPartes({ partes, parteAtiva, onEscolher }) {
   );
 }
 
-export function CartaoAjuste({ titulo, resumo, abertoPadrao = true, children }) {
-  const [aberto, setAberto] = useState(abertoPadrao);
+export function CartaoAjuste({ titulo, resumo, abertoPadrao = true, aberto: abertoExterno, onAberto, children }) {
+  const [abertoLocal, setAbertoLocal] = useState(abertoPadrao);
+  const controlado = abertoExterno !== undefined;
+  const aberto = controlado ? abertoExterno : abertoLocal;
+  const setAberto = (proximo) => {
+    const valor = typeof proximo === "function" ? proximo(aberto) : proximo;
+    if (!controlado) setAbertoLocal(valor);
+    onAberto?.(valor);
+  };
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-paper-2 text-ink">
       <button
@@ -103,7 +114,14 @@ export function CampoCor({ label, value, fallback, onChange }) {
     <div className="space-y-1.5">
       <span className="text-xs uppercase tracking-[0.16em] text-muted">{label}</span>
       <div className="flex items-center gap-2">
-        <input type="color" className="h-10 w-full" value={value || fallback} onChange={(e) => onChange(e.target.value)} />
+        <input
+          type="color"
+          className="h-10 w-full"
+          value={value || fallback}
+          onPointerDown={(evento) => evento.stopPropagation()}
+          onClick={(evento) => evento.stopPropagation()}
+          onChange={(e) => onChange(e.target.value)}
+        />
         {value ? (
           <button type="button" className="shrink-0 text-xs text-muted hover:text-ink" onClick={() => onChange("")}>
             Tema
@@ -187,12 +205,22 @@ export function CamposEspaco({ props, onChange }) {
   );
 }
 
-export function CamposLayout({ props, onChange, midia = false, altura = false }) {
+function ativarCaixaFlex(props, extras) {
+  if (props.display === "flex" || props.display === "grid") return extras;
+  return {
+    display: "flex",
+    flexDirecao: props.flexDirecao || "row",
+    flexQuebra: props.flexQuebra || "wrap",
+    gap: definidoNumero(props.gap) ? props.gap : 16,
+    ...extras,
+  };
+}
+
+export function CamposLayout({ props, onChange, midia = false }) {
   const display = props.display || "";
-  const flexOuGrade = display === "flex" || display === "grid";
   return (
     <div className="space-y-3">
-      <Campo label="Display" dica="Como os itens se organizam dentro deste bloco.">
+      <Campo label="Display" dica="Como o conteúdo se organiza neste item.">
         <Pills
           valor={display}
           opcoes={DISPLAYS_BLOCO}
@@ -212,6 +240,30 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
               gap: definidoNumero(props.gap) ? props.gap : 16,
             } : {}),
           })}
+        />
+      </Campo>
+      <Campo label="Justify content" dica="Eixo principal: início, centro, fim ou espaço entre os itens.">
+        <Pills
+          wrap
+          valor={props.justify || ""}
+          opcoes={[{ id: "", nome: "Auto" }, ...JUSTIFY_BLOCO]}
+          onChange={(justify) => onChange(justify || props.align ? ativarCaixaFlex(props, { justify }) : { justify })}
+        />
+      </Campo>
+      <Campo label="Align items" dica="Eixo cruzado: topo, centro, base ou esticar.">
+        <Pills
+          wrap
+          valor={props.align || ""}
+          opcoes={[{ id: "", nome: "Auto" }, ...ALIGN_BLOCO]}
+          onChange={(align) => onChange(align || props.justify ? ativarCaixaFlex(props, { align }) : { align })}
+        />
+      </Campo>
+      <Campo label="Align self" dica="Posição deste item dentro do bloco pai.">
+        <Pills
+          wrap
+          valor={props.alignSelf || ""}
+          opcoes={[{ id: "", nome: "Auto" }, ...ALIGN_BLOCO]}
+          onChange={(alignSelf) => onChange({ alignSelf })}
         />
       </Campo>
       {display === "flex" && (
@@ -237,28 +289,12 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
           />
         </Campo>
       )}
-      {flexOuGrade && (
-        <>
-          <Campo label="Alinhar no eixo">
-            <select className={inputClass} value={props.justify || "center"} onChange={(e) => onChange({ justify: e.target.value })}>
-              {JUSTIFY_BLOCO.map((item) => (
-                <option key={item.id} value={item.id}>{item.nome}</option>
-              ))}
-            </select>
-          </Campo>
-          <Campo label="Alinhar cruzado">
-            <select className={inputClass} value={props.align || "center"} onChange={(e) => onChange({ align: e.target.value })}>
-              {ALIGN_BLOCO.map((item) => (
-                <option key={item.id} value={item.id}>{item.nome}</option>
-              ))}
-            </select>
-          </Campo>
-          <Campo label="Espaço entre itens">
-            <input type="range" min="0" max="64" value={props.gap ?? 16} onChange={(e) => onChange({ gap: Number(e.target.value) })} className="w-full" />
-          </Campo>
-        </>
+      {(display === "flex" || display === "grid") && (
+        <Campo label="Espaço entre itens">
+          <input type="range" min="0" max="64" value={props.gap ?? 16} onChange={(e) => onChange({ gap: Number(e.target.value) })} className="w-full" />
+        </Campo>
       )}
-      <Campo label="Cantos" dica="Arredondamento do bloco.">
+      <Campo label="Cantos" dica="Arredondamento deste item.">
         <Pills
           wrap
           valor={props.raio === "" || props.raio == null ? "" : String(props.raio)}
@@ -271,6 +307,19 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
       )}
       <Campo label="Ajuste fino do raio">
         <input type="range" min="0" max="48" value={props.raio === "" || props.raio == null ? 16 : Math.min(48, Number(props.raio))} onChange={(e) => onChange({ raio: Number(e.target.value) })} className="w-full" />
+      </Campo>
+      <Campo label="Altura mínima">
+        <div className="flex items-center gap-2">
+          <input type="range" min="0" max="720" value={props.minAltura === "" || props.minAltura == null ? 0 : props.minAltura} onChange={(e) => onChange({ minAltura: Number(e.target.value) })} className="w-full" />
+          <span className="w-12 text-right text-xs text-muted">{props.minAltura === "" || props.minAltura == null ? "auto" : `${props.minAltura}`}</span>
+        </div>
+      </Campo>
+      <Campo label="Overflow">
+        <Pills
+          valor={props.overflow || ""}
+          opcoes={[{ id: "", nome: "Visível" }, { id: "hidden", nome: "Cortar" }]}
+          onChange={(overflow) => onChange({ overflow })}
+        />
       </Campo>
       {midia && (
         <>
@@ -285,23 +334,6 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
           </Campo>
         </>
       )}
-      {altura && (
-        <>
-          <Campo label="Altura mínima">
-            <div className="flex items-center gap-2">
-              <input type="range" min="0" max="720" value={props.minAltura === "" || props.minAltura == null ? 0 : props.minAltura} onChange={(e) => onChange({ minAltura: Number(e.target.value) })} className="w-full" />
-              <span className="w-12 text-right text-xs text-muted">{props.minAltura === "" || props.minAltura == null ? "auto" : `${props.minAltura}`}</span>
-            </div>
-          </Campo>
-          <Campo label="Overflow">
-            <Pills
-              valor={props.overflow || ""}
-              opcoes={[{ id: "", nome: "Visível" }, { id: "hidden", nome: "Cortar" }]}
-              onChange={(overflow) => onChange({ overflow })}
-            />
-          </Campo>
-        </>
-      )}
       <button
         type="button"
         className="text-xs text-muted hover:text-ink"
@@ -311,11 +343,13 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
           flexQuebra: "",
           justify: "",
           align: "",
+          alignSelf: "",
           gap: "",
           colunasGrade: "",
           raio: "",
+          minAltura: "",
+          overflow: "",
           ...(midia ? { itemLargura: "", objectFit: "" } : {}),
-          ...(altura ? { minAltura: "", overflow: "" } : {}),
         })}
       >
         Voltar ao layout padrão
@@ -324,30 +358,48 @@ export function CamposLayout({ props, onChange, midia = false, altura = false })
   );
 }
 
+const acordeaoCaixa = new Map();
+
+/** Fundo, layout e padding do item selecionado — não do bloco. */
+export function CartoesCaixa({ idAcordeao, fonte = {}, onChange, layout = {}, onArquivo, fallbackCor = "#ffffff" }) {
+  const [abertos, setAbertos] = useState(() => acordeaoCaixa.get(idAcordeao) || {
+    fundo: false,
+    layout: true,
+    espaco: false,
+  });
+  const setChave = (chave, valor) => {
+    setAbertos((atual) => {
+      const proximo = { ...atual, [chave]: valor };
+      if (idAcordeao) acordeaoCaixa.set(idAcordeao, proximo);
+      return proximo;
+    });
+  };
+  return (
+    <>
+      <CartaoAjuste titulo="Fundo" resumo="Cor, degradê ou imagem deste item" aberto={abertos.fundo} onAberto={(valor) => setChave("fundo", valor)}>
+        <CampoFundo fonte={fonte} fallbackCor={fallbackCor} onChange={onChange} onArquivo={onArquivo} />
+      </CartaoAjuste>
+      <CartaoAjuste titulo={layout.titulo || "Layout e cantos"} aberto={abertos.layout} onAberto={(valor) => setChave("layout", valor)}>
+        <CamposLayout props={fonte} onChange={onChange} midia={layout.midia} />
+      </CartaoAjuste>
+      <CartaoAjuste titulo="Margem e padding" aberto={abertos.espaco} onAberto={(valor) => setChave("espaco", valor)}>
+        <CamposEspaco props={fonte} onChange={onChange} />
+      </CartaoAjuste>
+    </>
+  );
+}
+
 /** Quais campos de layout fazem sentido para cada tipo de bloco. */
 export function perfilLayout(tipo) {
   switch (tipo) {
     case "imagem":
     case "galeria":
-      return { midia: true, altura: true, titulo: "Layout e foto" };
+      return { midia: true, titulo: "Layout e foto" };
     case "cartoes":
     case "depoimentos":
-      return { midia: true, altura: false, titulo: "Layout e cantos" };
-    case "capa":
-    case "faixa":
-    case "secao":
-    case "formulario":
-      return { midia: false, altura: true, titulo: "Layout e cantos" };
-    case "icones":
-    case "botoes":
-    case "redes":
-    case "navegacao":
-      return { midia: false, altura: false, titulo: "Layout e cantos" };
-    case "texto":
-    case "rodape":
-      return { midia: false, altura: false, titulo: "Layout e cantos" };
+      return { midia: true, titulo: "Layout e cantos" };
     default:
-      return { midia: false, altura: false, titulo: "Layout e cantos" };
+      return { midia: false, titulo: "Layout e cantos" };
   }
 }
 

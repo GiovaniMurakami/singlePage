@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Monitor, Plus, Smartphone } from "lucide-react";
 import { Pills } from "./ajustesUI";
+import { seletorCorAberto } from "./seletorCor";
 import { PageRenderer } from "./PageRenderer";
 import { Inspector, ThemeInspector } from "./Inspector";
 import { GuiaEditor } from "./GuiaEditor";
@@ -9,6 +10,7 @@ import { Tooltip } from "./Tooltip";
 import { IconeLucide } from "./icones";
 import { TIPOS_ESTRUTURA, TIPOS_PECA, blocoPadrao, ehTipoEstrutura } from "./templates";
 import {
+  acharBloco,
   caminhoDoAlvo,
   contextoDoAlvo,
   destinoDaInsercao,
@@ -21,6 +23,8 @@ import {
   rotuloDestino,
   substituirBloco,
 } from "./blocosArvore";
+import { LayoutPickerModal } from "./LayoutPickerModal";
+import { aplicarLayout } from "./blocoLayouts";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { cssFundo } from "./fundo";
 import { parteDoBloco, removerParteDoBloco, separarAlvo } from "./partes";
@@ -75,11 +79,13 @@ export function EditorShell({
   const [visao, setVisao] = useState("desktop");
   const [arrasto, setArrasto] = useState(null);
   const [guiaAberta, setGuiaAberta] = useState(() => window.localStorage.getItem("single.guia-editor") !== "oculto");
+  const [layoutsBlocoId, setLayoutsBlocoId] = useState(null);
   const historicoRef = useRef([]);
 
   const { blocoId: alvoId, parteId } = separarAlvo(selecionadoId);
   const alvo = useMemo(() => contextoDoAlvo(pagina.blocos, alvoId), [pagina.blocos, alvoId]);
   const bloco = alvo?.kind === "bloco" ? alvo.bloco : null;
+  const layoutsBloco = layoutsBlocoId ? acharBloco(pagina.blocos, layoutsBlocoId) : null;
   const parte = parteDoBloco(bloco, parteId);
   const arvore = useMemo(() => listarArvore(pagina.blocos), [pagina.blocos]);
   const migalhas = useMemo(() => caminhoDoAlvo(pagina.blocos, alvoId), [pagina.blocos, alvoId]);
@@ -125,12 +131,17 @@ export function EditorShell({
     onChange({ ...pagina, blocos: substituirBloco(pagina.blocos, proximo) });
   };
 
+  const abrirLayoutsSeCapa = (tipo, blocoId) => {
+    if (tipo === "capa") setLayoutsBlocoId(blocoId);
+  };
+
   const adicionarPeca = (tipo) => {
     const novo = blocoPadrao(tipo);
     const destino = destinoDaInsercao(pagina.blocos, alvoId, tipo);
     registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
+    abrirLayoutsSeCapa(tipo, novo.id);
   };
 
   const inserirEm = (tipo, destino) => {
@@ -138,6 +149,7 @@ export function EditorShell({
     registrarHistorico();
     gravar(inserirPorDestino(pagina.blocos, novo, destino), novo.id);
     setAba("bloco");
+    abrirLayoutsSeCapa(tipo, novo.id);
   };
 
   const soltarNoCanvas = (destinoId, posicao, dadosEvento, extra) => {
@@ -161,17 +173,21 @@ export function EditorShell({
       const novo = blocoPadrao(dados.tipo);
       if (extra?.celulaId && !ehTipoEstrutura(dados.tipo)) {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "celula", celulaId: extra.celulaId }), novo.id);
+        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       if (extra?.containerId && dados.tipo !== "secao") {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "dentro", containerId: extra.containerId }), novo.id);
+        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       if (destinoId) {
         gravar(inserirPorDestino(pagina.blocos, novo, { modo: "lado", destinoId, posicao }), novo.id);
+        abrirLayoutsSeCapa(dados.tipo, novo.id);
         return;
       }
       gravar(inserirPorDestino(pagina.blocos, novo, destinoDaInsercao(pagina.blocos, selecionadoId, dados.tipo)), novo.id);
+      abrirLayoutsSeCapa(dados.tipo, novo.id);
     }
     setAba("bloco");
   };
@@ -179,6 +195,14 @@ export function EditorShell({
   const selecionar = (id) => {
     setSelecionadoId(id);
     setAba("bloco");
+  };
+
+  const selecionarNaBarra = (id) => {
+    selecionar(id);
+    const { blocoId, parteId } = separarAlvo(id);
+    if (parteId) return;
+    const encontrado = acharBloco(pagina.blocos, blocoId);
+    if (encontrado?.tipo === "capa") setLayoutsBlocoId(blocoId);
   };
 
   useEffect(() => {
@@ -195,6 +219,7 @@ export function EditorShell({
       }
       if (digitando) return;
       if (evento.key === "Escape") {
+        if (seletorCorAberto()) return;
         setSelecionadoId(null);
         return;
       }
@@ -303,7 +328,7 @@ export function EditorShell({
             <p className="mb-1 text-xs uppercase tracking-[0.16em] text-muted">Nesta página</p>
             <p className="mb-2 text-[11px] leading-4 text-muted">Clique num item para rolar até ele.</p>
             {arvore.length ? (
-              <ArvorePagina nos={arvore} selecionadoId={alvoId} onSelect={selecionar} />
+              <ArvorePagina nos={arvore} selecionadoId={alvoId} onSelect={selecionarNaBarra} />
             ) : (
               <p className="text-xs text-muted">Ainda vazia. Comece por uma seção.</p>
             )}
@@ -312,6 +337,14 @@ export function EditorShell({
 
         <section
           className="flex min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-6 lg:min-h-0"
+          onClick={(evento) => {
+            const alvo = evento.target;
+            if (seletorCorAberto()) return;
+            if (!(alvo instanceof Element)) return;
+            if (alvo === document.documentElement || alvo === document.body) return;
+            if (alvo.closest("[data-editor-chrome], .bloco-editor, .parte-alvo, .ponto-insercao, .zona-vazia, .celula-editor, [data-pagina-canvas]")) return;
+            setSelecionadoId(null);
+          }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -340,6 +373,7 @@ export function EditorShell({
                     onRemoverParte={removerParte}
                     onInserir={inserirEm}
                     onAtualizar={atualizarBloco}
+                    onAbrirLayouts={setLayoutsBlocoId}
                   />
                 </div>
               </div>
@@ -362,6 +396,7 @@ export function EditorShell({
                   onRemoverParte={removerParte}
                   onInserir={inserirEm}
                   onAtualizar={atualizarBloco}
+                  onAbrirLayouts={setLayoutsBlocoId}
                 />
               </div>
             </div>
@@ -414,6 +449,19 @@ export function EditorShell({
           )}
         </aside>
       </div>
+      {layoutsBloco && (
+        <LayoutPickerModal
+          tipo={layoutsBloco.tipo}
+          atualId={layoutsBloco.props.layoutId}
+          propsBloco={layoutsBloco.props}
+          tema={pagina.tema}
+          onEscolher={(id) => {
+            atualizarBloco({ ...layoutsBloco, props: aplicarLayout(layoutsBloco.tipo, id, layoutsBloco.props) });
+            setLayoutsBlocoId(null);
+          }}
+          onFechar={() => setLayoutsBlocoId(null)}
+        />
+      )}
     </div>
   );
 }

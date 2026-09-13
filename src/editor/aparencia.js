@@ -1,4 +1,5 @@
 import { cssFundo, temFundoProprio } from "./fundo";
+import { ALINHAMENTOS_TEMA, FONTES, cssAlinhamento, cssOrientacao } from "./fontes";
 
 export const TAMANHOS_TITULO = [
   { id: "", nome: "Padrão do bloco" },
@@ -30,15 +31,14 @@ export function classeBotaoTamanho(tamanho) {
 
 export const ALINHAMENTOS_BLOCO = [
   { id: "", nome: "Seguir o tema" },
-  { id: "esquerda", nome: "Esquerda" },
-  { id: "centro", nome: "Centro" },
+  ...ALINHAMENTOS_TEMA,
 ];
 
 const TITULO = {
-  pequeno: "font-display text-2xl leading-snug",
-  medio: "font-display text-3xl leading-snug",
-  grande: "font-display text-5xl leading-tight md:text-6xl",
-  enorme: "font-display text-6xl leading-none md:text-7xl",
+  pequeno: "text-2xl font-semibold leading-snug",
+  medio: "text-3xl font-semibold leading-snug",
+  grande: "text-5xl font-semibold leading-tight md:text-6xl",
+  enorme: "text-6xl font-semibold leading-none md:text-7xl",
 };
 
 const TEXTO = {
@@ -89,6 +89,7 @@ export const JUSTIFY_BLOCO = [
   { id: "flex-end", nome: "Fim" },
   { id: "space-between", nome: "Entre" },
   { id: "space-around", nome: "Em volta" },
+  { id: "space-evenly", nome: "Igual" },
 ];
 
 export const ALIGN_BLOCO = [
@@ -136,12 +137,13 @@ function eixoGrade(valor, padrao = "center") {
 
 export function estiloLayout(props = {}) {
   const estilo = {};
-  if (props.display) {
-    estilo.display = props.display;
+  const usarFlex = props.display === "flex" || (!props.display && (props.justify || props.align));
+  if (props.display || usarFlex) {
+    estilo.display = props.display || "flex";
     estilo.width = "100%";
     estilo.boxSizing = "border-box";
   }
-  if (props.display === "flex") {
+  if (usarFlex) {
     estilo.flexDirection = props.flexDirecao || "row";
     estilo.flexWrap = props.flexQuebra || "wrap";
     estilo.justifyContent = props.justify || "center";
@@ -156,6 +158,7 @@ export function estiloLayout(props = {}) {
   }
   if (definido(props.raio)) estilo.borderRadius = `${Number(props.raio)}px`;
   if (definido(props.minAltura)) estilo.minHeight = px(props.minAltura);
+  if (props.alignSelf) estilo.alignSelf = props.alignSelf;
   if (props.overflow) estilo.overflow = props.overflow;
   return estilo;
 }
@@ -181,8 +184,10 @@ export function estiloMidia(props = {}, padraoRaio = "1rem") {
 
 export function caixaDoBloco(props = {}) {
   const estilo = { ...cssFundo(props, "corFundo"), ...estiloLayout(props) };
-  if (props.alinhamento === "esquerda") estilo.textAlign = "left";
-  if (props.alinhamento === "centro") estilo.textAlign = "center";
+  const alinhado = cssAlinhamento(props.alinhamento);
+  if (alinhado) estilo.textAlign = alinhado;
+  if (props.fonte && FONTES[props.fonte]) estilo.fontFamily = FONTES[props.fonte];
+  Object.assign(estilo, cssOrientacao(props.orientacao));
   if (!definido(props.raio) && temFundoProprio(props)) estilo.borderRadius = "1.25rem";
   const temPadding = definido(props.paddingCima) || definido(props.paddingBaixo) || definido(props.paddingLados);
   if (temPadding) {
@@ -197,4 +202,12 @@ export function caixaDoBloco(props = {}) {
   if (definido(props.margemBaixo)) estilo.marginBottom = px(props.margemBaixo);
   if (props.corTexto) estilo.color = props.corTexto;
   return estilo;
+}
+
+export function estiloDoItem(item = {}, extra = {}) {
+  return { ...extra, ...caixaDoBloco(item) };
+}
+
+export function estiloDaParte(props = {}, parteId, extra = {}) {
+  return estiloDoItem(props.estiloPartes?.[parteId] || {}, extra);
 }

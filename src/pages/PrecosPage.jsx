@@ -14,7 +14,7 @@ const BOTAO_ATUAL = "flex min-h-12 w-full items-center justify-center rounded-fu
 const PLANOS_FALLBACK = [
   { codigo: "free", nome: "Free", descricao: "Uma página. Anúncios na página publicada.", precoCentavos: 0, precoMensalCentavos: 0, periodo: "mes", paginasMaximas: 1, removeMarca: false, dominioProprio: false, anuncios: true },
   { codigo: "pro", nome: "Pro", descricao: "Até 10 páginas no domínio singlepage.com.br, sem marca, sem anúncios e com formulários ilimitados.", precoCentavos: 990, precoMensalCentavos: 990, periodo: "mes", paginasMaximas: 10, removeMarca: true, dominioProprio: false, anuncios: false, destaque: true },
-  { codigo: "ultra", nome: "Ultra", descricao: "Até 50 páginas, domínio personalizável e prioridade no suporte.", precoCentavos: 4990, precoMensalCentavos: 4990, periodo: "ano", paginasMaximas: 50, removeMarca: true, dominioProprio: true, anuncios: false },
+  { codigo: "ultra", nome: "Ultra", descricao: "Até 50 páginas, domínio personalizável e prioridade no suporte.", precoCentavos: 4990, precoMensalCentavos: 4990, periodo: "mes", paginasMaximas: 50, removeMarca: true, dominioProprio: true, anuncios: false },
 ];
 
 const PLANO_SOB_MEDIDA = {

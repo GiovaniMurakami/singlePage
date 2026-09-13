@@ -96,7 +96,16 @@ export function GuestEditorPage() {
         onTrocarModelo={() => setEscolhendo(true)}
         acoes={(
           <>
-            <span className="self-center text-xs text-muted">Rascunho no navegador</span>
+            <button
+              type="button"
+              className="rounded-full border border-line px-4 py-2 text-sm"
+              onClick={() => {
+                salvarRascunho(pagina);
+                addToast("Rascunho salvo neste navegador.");
+              }}
+            >
+              Salvar rascunho
+            </button>
             {autenticado ? (
               <button
                 type="button"

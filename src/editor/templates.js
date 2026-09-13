@@ -1,4 +1,5 @@
 import { iconePadrao } from "./icones";
+import { aplicarCaixaNaParte } from "./partes";
 import { LAYOUTS_EXTRA } from "./templatesLayouts";
 
 function bloco(tipo, props) {
@@ -126,6 +127,7 @@ export function botaoPadrao(extras = {}) {
 export function blocoPadrao(tipo) {
   const padroes = {
     capa: {
+      layoutId: "centro",
       titulo: "Sua página",
       subtitulo: "Diga quem você é em uma frase.",
       fotoUrl: "",
@@ -139,6 +141,7 @@ export function blocoPadrao(tipo) {
     },
     imagem: { url: "", alt: "Imagem da página", caption: "" },
     botoes: {
+      layoutId: "pilha",
       itens: [
         botaoPadrao({ rotulo: "Instagram", url: "https://instagram.com", estilo: "preenchido" }),
         botaoPadrao({ rotulo: "WhatsApp", url: "https://wa.me/55", estilo: "contorno" }),
@@ -159,6 +162,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     galeria: {
+      layoutId: "grade-2",
       urls: [IMG_S3("portfolio-1.jpg"), IMG_S3("portfolio-2.jpg"), IMG_S3("portfolio-3.jpg")],
     },
     redes: {
@@ -169,6 +173,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     icones: {
+      layoutId: "centro",
       itens: [
         iconePadrao({ nome: "Instagram", url: "https://instagram.com", fundo: "#1d1d1f", animacao: "flutuar" }),
         iconePadrao({ nome: "Mail", url: "mailto:oi@email.com", fundo: "#0071e3", animacao: "pulso" }),
@@ -199,6 +204,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     depoimentos: {
+      layoutId: "lista",
       itens: [{ citacao: "Funcionou na primeira semana.", autor: "Cliente", fotoUrl: "" }],
     },
     divisor: { estilo: "linha" },
@@ -213,6 +219,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     cartoes: {
+      layoutId: "grade",
       colunas: 3,
       itens: [
         { icone: "Zap", titulo: "Rápido", corpo: "Uma página no ar no mesmo dia." },
@@ -221,6 +228,7 @@ export function blocoPadrao(tipo) {
       ],
     },
     faixa: {
+      layoutId: "centro",
       fundo: "#111111",
       texto: "#f5f5f7",
       destaque: "#7dd3fc",
@@ -506,6 +514,10 @@ export function aplicarImagemNoBloco(bloco, url, destino = "url") {
   }
   if (destino === "fundoImagem") {
     return { ...bloco, props: { ...bloco.props, fundoModo: "imagem", fundoImagem: url } };
+  }
+  if (String(destino).startsWith("parteFundo:")) {
+    const parteId = String(destino).slice("parteFundo:".length);
+    return aplicarCaixaNaParte(bloco, { id: parteId }, { fundoModo: "imagem", fundoImagem: url });
   }
   if (String(destino).startsWith("depoimento:")) {
     const indice = Number(String(destino).split(":")[1]);
