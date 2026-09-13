@@ -656,7 +656,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   }
 
   if (!bloco) {
-    return <p className="text-sm text-muted">Clique numa seção, coluna ou peça para configurar.</p>;
+    return <p className="text-sm text-muted">Clique numa peça na página. Endereço e fundo ficam em Tema.</p>;
   }
 
   const set = (props) => onChange({ ...bloco, props: { ...bloco.props, ...props } });
@@ -1108,9 +1108,10 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   return <p className="text-sm text-muted">Este bloco ainda não tem opções.</p>;
 }
 
-export function ThemeInspector({ tema, onChange, onEscolherImagem }) {
+export function ThemeInspector({ tema, onChange, onEscolherImagem, extras }) {
   return (
     <div className="space-y-2">
+      {extras}
       <CartaoAjuste titulo="Fundo da página" resumo="Cor, degradê, imagem ou transparente">
         <CampoFundo
           fonte={tema}

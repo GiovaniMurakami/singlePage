@@ -98,19 +98,19 @@ export function GuestEditorPage() {
           <>
             <button
               type="button"
-              className="shrink-0 rounded-full border border-line px-4 py-2 text-sm"
+              className="shrink-0 rounded-full border border-line px-3 py-2 text-sm sm:px-4"
               onClick={() => {
                 salvarRascunho(pagina);
                 addToast("Rascunho salvo neste navegador.");
               }}
             >
-              Salvar rascunho
+              Salvar
             </button>
             {autenticado ? (
               <button
                 type="button"
                 disabled={salvando}
-                className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-60"
+                className="shrink-0 rounded-full bg-ink px-3 py-2 text-sm text-paper disabled:opacity-60 sm:px-4"
                 onClick={async () => {
                   setSalvando(true);
                   try {
@@ -129,10 +129,10 @@ export function GuestEditorPage() {
                   }
                 }}
               >
-                {salvando ? "Salvando…" : "Salvar na conta"}
+                {salvando ? "…" : "Na conta"}
               </button>
             ) : (
-              <Link to="/cadastrar" className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-paper">Criar conta para publicar</Link>
+              <Link to="/cadastrar" className="shrink-0 rounded-full bg-ink px-3 py-2 text-sm text-paper sm:px-4">Publicar</Link>
             )}
           </>
         )}

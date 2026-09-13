@@ -1517,7 +1517,7 @@ export function PageRenderer({
 
   const canvas = (
     <div
-      className={compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-1 flex-col" : "flex min-h-screen flex-col"}
+      className={compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-col" : "flex min-h-screen flex-col"}
       data-pagina-canvas
       style={{
         ...cssFundo(tema),

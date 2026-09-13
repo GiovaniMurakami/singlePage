@@ -72,6 +72,7 @@ export function EditorShell({
   acoes,
   onEscolherImagem,
   onTrocarModelo,
+  ajustesPagina,
 }) {
   const [selecionadoId, setSelecionadoId] = useState(pagina.blocos[0]?.id || null);
   const [aba, setAba] = useState("bloco");
@@ -235,33 +236,29 @@ export function EditorShell({
 
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-paper pt-[env(safe-area-inset-top)]">
-      <header className="flex shrink-0 flex-col gap-3 border-b border-line bg-paper-2/80 px-3 py-2.5 backdrop-blur-xl sm:px-4 sm:py-3">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            <Link to={voltarPara} className="shrink-0 text-sm text-muted">{voltarLabel}</Link>
-            <input
-              className="min-w-0 flex-1 rounded-lg border border-line px-2 py-1.5 text-sm sm:max-w-xs"
-              value={pagina.titulo}
-              onChange={(e) => onChange({ ...pagina, titulo: e.target.value })}
-              aria-label="Título da página"
-            />
-          </div>
-          <div className="hidden lg:block">
-            <Pills
-              valor={visao}
-              onChange={setVisao}
-              className="min-w-[13rem]"
-              opcoes={[
-                { id: "desktop", nome: "Desktop", icone: <Monitor size={14} /> },
-                { id: "celular", nome: "Celular", icone: <Smartphone size={14} /> },
-              ]}
-            />
-          </div>
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-paper-2/90 px-3 py-2 sm:gap-3 sm:px-4">
+        <Link to={voltarPara} className="shrink-0 text-sm text-muted">{voltarLabel}</Link>
+        <input
+          className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm sm:max-w-[14rem]"
+          value={pagina.titulo}
+          onChange={(e) => onChange({ ...pagina, titulo: e.target.value })}
+          aria-label="Título da página"
+        />
+        <div className="hidden shrink-0 lg:block">
+          <Pills
+            valor={visao}
+            onChange={setVisao}
+            className="min-w-[9.5rem]"
+            opcoes={[
+              { id: "desktop", nome: "Desk", icone: <Monitor size={14} /> },
+              { id: "celular", nome: "Cel", icone: <Smartphone size={14} /> },
+            ]}
+          />
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           {onTrocarModelo && (
-            <button type="button" className="shrink-0 rounded-full border border-line px-4 py-2 text-sm" onClick={onTrocarModelo}>
-              Trocar modelo
+            <button type="button" className="hidden rounded-full px-3 py-2 text-sm text-muted hover:text-ink sm:inline" onClick={onTrocarModelo}>
+              Modelo
             </button>
           )}
           {acoes}
@@ -340,7 +337,7 @@ export function EditorShell({
         </aside>
 
         <section
-          className={`h-full min-h-0 flex-col overflow-y-auto bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:18px_18px] p-3 sm:p-6 ${painel === "pagina" ? "flex" : "hidden"} lg:flex`}
+          className={`flex h-full min-h-0 flex-col overflow-y-auto bg-paper ${painel === "pagina" ? "flex" : "hidden"} lg:flex`}
           onClick={(evento) => {
             const alvo = evento.target;
             if (seletorCorAberto()) return;
@@ -356,18 +353,10 @@ export function EditorShell({
             if (!pagina.blocos.length) soltarNoCanvas(null, "depois");
           }}
         >
-          <Tooltip passo="2" titulo="Clique no que quer mudar" texto="Clique no texto, na foto ou no botão. O painel da direita muda só aquilo." lado="baixo">
-            <p className="mb-3 text-center text-xs text-muted">
-              {celular
-                ? "Visual do celular — clique para editar no painel"
-                : "Clique no texto, na foto ou no botão. O painel da direita muda só aquilo"}
-            </p>
-          </Tooltip>
-
           {celular ? (
-            <div className="relative mx-auto w-full max-w-[360px]">
+            <div className="mx-auto w-full max-w-[360px] p-3 sm:p-6">
               <div className="rounded-[2.4rem] p-[10px] ring-1 ring-black/10" style={cssFundo(pagina.tema || {})}>
-                <div className="preview-celular h-[min(680px,70dvh)] overflow-auto rounded-[1.9rem]" style={cssFundo(pagina.tema || {})}>
+                <div className="preview-celular h-[min(680px,70dvh)] overflow-auto rounded-[1.9rem]">
                   <PageRenderer
                     pagina={pagina}
                     selecionadoId={selecionadoId}
@@ -383,26 +372,24 @@ export function EditorShell({
               </div>
             </div>
           ) : (
-            <div className="relative mx-auto flex min-h-full w-full flex-1 flex-col">
-              <div className="flex min-h-full flex-1 flex-col overflow-visible rounded-[2rem] border border-line">
-                <PageRenderer
-                  pagina={pagina}
-                  selecionadoId={selecionadoId}
-                  onSelect={selecionar}
-                  arrasto={arrasto}
-                  onInicioArrasto={(dados) => setArrasto(dados)}
-                  onSobreArrasto={(id, posicao, extra) => setArrasto((atual) => (
-                    atual ? { ...atual, sobreId: id, posicao, sobreCelulaId: extra?.celulaId, sobreContainerId: extra?.containerId } : atual
-                  ))}
-                  onSoltarArrasto={soltarNoCanvas}
-                  onEscolherImagem={onEscolherImagem}
-                  onRemover={removerSelecionado}
-                  onRemoverParte={removerParte}
-                  onInserir={inserirEm}
-                  onAtualizar={atualizarBloco}
-                  onAbrirLayouts={setLayoutsBlocoId}
-                />
-              </div>
+            <div className="flex min-h-full w-full grow flex-col" style={cssFundo(pagina.tema || {})}>
+              <PageRenderer
+                pagina={pagina}
+                selecionadoId={selecionadoId}
+                onSelect={selecionar}
+                arrasto={arrasto}
+                onInicioArrasto={(dados) => setArrasto(dados)}
+                onSobreArrasto={(id, posicao, extra) => setArrasto((atual) => (
+                  atual ? { ...atual, sobreId: id, posicao, sobreCelulaId: extra?.celulaId, sobreContainerId: extra?.containerId } : atual
+                ))}
+                onSoltarArrasto={soltarNoCanvas}
+                onEscolherImagem={onEscolherImagem}
+                onRemover={removerSelecionado}
+                onRemoverParte={removerParte}
+                onInserir={inserirEm}
+                onAtualizar={atualizarBloco}
+                onAbrirLayouts={setLayoutsBlocoId}
+              />
             </div>
           )}
         </section>
@@ -438,7 +425,7 @@ export function EditorShell({
             ]}
           />
           {aba === "tema" ? (
-            <ThemeInspector tema={pagina.tema} onChange={(tema) => onChange({ ...pagina, tema })} onEscolherImagem={onEscolherImagem} />
+            <ThemeInspector tema={pagina.tema} onChange={(tema) => onChange({ ...pagina, tema })} onEscolherImagem={onEscolherImagem} extras={ajustesPagina} />
           ) : (
             <Inspector
               bloco={bloco}

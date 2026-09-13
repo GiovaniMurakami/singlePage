@@ -8,6 +8,7 @@ import { aplicarImagemNoBloco, slugify } from "../editor/templates";
 import { substituirBloco } from "../editor/blocosArvore";
 import { enderecoReservado, partesEnderecoPublico, urlPublicaPagina } from "../constants/site";
 import { Seo } from "../components/Seo";
+import { CartaoAjuste } from "../editor/ajustesUI";
 
 export function EditorPage() {
   const { paginaId } = useParams();
@@ -103,36 +104,38 @@ export function EditorPage() {
       voltarPara="/app"
       voltarLabel="Páginas"
       onEscolherImagem={onEscolherImagem}
+      ajustesPagina={(
+        <CartaoAjuste titulo="Endereço público" resumo={partes.slug ? `${partes.prefixo}${partes.slug}${partes.sufixo}` : "Nome no ar"}>
+          <span className="flex items-center rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm">
+            {partes.prefixo ? <span className="shrink-0 text-muted">{partes.prefixo}</span> : null}
+            <input
+              className="min-w-0 flex-1 bg-transparent outline-none"
+              value={pagina.slug}
+              onChange={(e) => {
+                enderecoManual.current = true;
+                setPagina({ ...pagina, slug: slugify(e.target.value) });
+              }}
+              aria-label="Endereço público da página"
+              placeholder="nome-da-pagina"
+            />
+            {partes.sufixo ? <span className="shrink-0 text-muted">{partes.sufixo}</span> : null}
+          </span>
+          <Link to={`/app/${paginaId}/painel`} className="mt-2 inline-flex text-sm text-accent">Ver painel</Link>
+        </CartaoAjuste>
+      )}
       acoes={(
         <>
-          <label className="flex w-full min-w-0 flex-col gap-0.5 sm:w-auto sm:min-w-[16rem]">
-            <span className="text-[10px] uppercase tracking-[0.14em] text-muted">Endereço público</span>
-            <span className="flex items-center gap-0 rounded-lg border border-line bg-paper-2 px-2 py-1 text-sm">
-              {partes.prefixo ? <span className="shrink-0 text-muted">{partes.prefixo}</span> : null}
-              <input
-                className="min-w-0 flex-1 bg-transparent outline-none"
-                value={pagina.slug}
-                onChange={(e) => {
-                  enderecoManual.current = true;
-                  setPagina({ ...pagina, slug: slugify(e.target.value) });
-                }}
-                aria-label="Endereço público da página"
-                placeholder="nome-da-pagina"
-              />
-              {partes.sufixo ? <span className="shrink-0 text-muted">{partes.sufixo}</span> : null}
-            </span>
-          </label>
-          <Link to={`/app/${paginaId}/painel`} className="shrink-0 rounded-full px-4 py-2 text-sm text-accent">
+          <Link to={`/app/${paginaId}/painel`} className="hidden rounded-full px-3 py-2 text-sm text-muted hover:text-ink md:inline">
             Painel
           </Link>
-          <button type="button" onClick={() => salvar.mutate()} className="shrink-0 rounded-full border border-line px-4 py-2 text-sm">
-            {salvar.isPending ? "Salvando…" : "Salvar rascunho"}
+          <button type="button" onClick={() => salvar.mutate()} className="shrink-0 rounded-full border border-line px-3 py-2 text-sm sm:px-4">
+            {salvar.isPending ? "…" : "Salvar"}
           </button>
-          <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm text-paper">
+          <button type="button" onClick={() => publicar.mutate(!pagina.publicada)} className="shrink-0 rounded-full bg-ink px-3 py-2 text-sm text-paper sm:px-4">
             {pagina.publicada ? "Despublicar" : "Publicar"}
           </button>
           {pagina.publicada && (
-            <a href={linkPublico} target="_blank" rel="noreferrer" className="shrink-0 rounded-full px-4 py-2 text-sm text-accent">
+            <a href={linkPublico} target="_blank" rel="noreferrer" className="shrink-0 rounded-full px-3 py-2 text-sm text-accent">
               Ver
             </a>
           )}

@@ -9,6 +9,7 @@ import { CATEGORIAS, TEMPLATES, slugify } from "../editor/templates";
 import { temRascunho } from "../editor/rascunho";
 import { rotuloUrlPublica, urlPublicaPagina } from "../constants/site";
 import { Seo } from "../components/Seo";
+import { ConfirmarExclusaoPagina } from "../components/ui/ConfirmarExclusaoPagina";
 
 export function DashboardPage() {
   const { usuario } = useAuth();
@@ -17,6 +18,7 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [templateId, setTemplateId] = useState("perfil");
+  const [paraExcluir, setParaExcluir] = useState(null);
   const paginas = useQuery({ queryKey: ["paginas"], queryFn: listarPaginas });
 
   const criar = useMutation({
@@ -38,7 +40,10 @@ export function DashboardPage() {
 
   const excluir = useMutation({
     mutationFn: excluirPagina,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["paginas"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["paginas"] });
+      setParaExcluir(null);
+    },
     onError: (error) => addToast(mensagemErro(error), "erro"),
   });
 
@@ -101,7 +106,7 @@ export function DashboardPage() {
                 {pagina.publicada && (
                   <a href={urlPublicaPagina(pagina.slug)} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center">Ver</a>
                 )}
-                <button type="button" className="inline-flex min-h-10 items-center text-danger" onClick={() => excluir.mutate(pagina.id)}>Excluir</button>
+                <button type="button" className="inline-flex min-h-10 items-center text-danger" onClick={() => setParaExcluir(pagina)}>Excluir</button>
               </div>
             </article>
           ))}
@@ -112,6 +117,16 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+      {paraExcluir && (
+        <ConfirmarExclusaoPagina
+          pagina={paraExcluir}
+          pendente={excluir.isPending}
+          onCancelar={() => {
+            if (!excluir.isPending) setParaExcluir(null);
+          }}
+          onConfirmar={() => excluir.mutate(paraExcluir.id)}
+        />
+      )}
     </Shell>
   );
 }
