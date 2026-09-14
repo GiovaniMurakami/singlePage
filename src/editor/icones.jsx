@@ -18,7 +18,7 @@ export const ICONES_CATALOGO = [
   "ShoppingBag", "CreditCard", "Wallet",
   "BookOpen", "FileText", "Quote", "Palette", "PenTool",
   "Zap", "Sun", "Moon", "Leaf", "Cloud",
-  "Shield", "Lock", "Wifi", "Download", "ArrowRight", "Check",
+  "Shield", "Lock", "Wifi", "Download", "ArrowRight", "ArrowUpRight", "ExternalLink", "Check",
 ];
 
 export function iconePadrao(extras = {}) {
@@ -28,7 +28,7 @@ export function iconePadrao(extras = {}) {
     cor: "#ffffff",
     fundo: "#0071e3",
     tamanho: 22,
-    raio: 18,
+    raio: undefined,
     padding: 12,
     traco: 2,
     animacao: "nenhuma",

@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { CATEGORIAS, TEMPLATES, paginaDeTemplate, templateMostraDemo } from "./templates";
 import { PageRenderer } from "./PageRenderer";
 import { cssFundo } from "./fundo";
+import { ROTULO_PLANO, planoPermite } from "./planos";
+import { useAuth } from "../context/AuthContext";
 
 function MiniPreview({ template }) {
   const pagina = useMemo(() => paginaDeTemplate(template.id), [template.id]);
@@ -21,6 +24,8 @@ function MiniPreview({ template }) {
 export function TemplatePicker({ onEscolher, onCancelar, titulo = "Escolha um ponto de partida" }) {
   const [categoria, setCategoria] = useState("todos");
   const [demoId, setDemoId] = useState(null);
+  const { usuario } = useAuth();
+  const plano = usuario?.plano || "free";
 
   const lista = useMemo(() => {
     return TEMPLATES.filter((item) => categoria === "todos" || item.categoria === categoria || item.categoria === "todos");
@@ -65,20 +70,33 @@ export function TemplatePicker({ onEscolher, onCancelar, titulo = "Escolha um po
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((template) => {
             const temDemo = templateMostraDemo(template);
+            const exigido = template.plano || "free";
+            const liberado = planoPermite(plano, exigido);
             return (
-              <article key={template.id} className="overflow-hidden rounded-[1.6rem] bg-paper-2 ring-1 ring-line transition hover:-translate-y-0.5 hover:shadow-lg">
+              <article key={template.id} className="relative overflow-hidden rounded-[1.6rem] bg-paper-2 ring-1 ring-line transition hover:-translate-y-0.5 hover:shadow-lg">
+                {!liberado && (
+                  <span className="absolute right-3 top-3 z-10 rounded-full bg-ink px-2.5 py-1 text-[11px] uppercase tracking-wide text-paper">
+                    {ROTULO_PLANO[exigido]}
+                  </span>
+                )}
                 <MiniPreview template={template} />
                 <div className="p-4">
                   <h2 className="font-medium">{template.nome}</h2>
                   <p className="mt-1 text-sm text-muted">{template.descricao}</p>
                   <div className="mt-4 flex gap-2">
-                    <button
-                      type="button"
-                      className="rounded-full bg-accent px-4 py-2 text-sm text-white"
-                      onClick={() => onEscolher(paginaDeTemplate(template.id))}
-                    >
-                      Usar
-                    </button>
+                    {liberado ? (
+                      <button
+                        type="button"
+                        className="rounded-full bg-accent px-4 py-2 text-sm text-white"
+                        onClick={() => onEscolher(paginaDeTemplate(template.id))}
+                      >
+                        Usar
+                      </button>
+                    ) : (
+                      <Link to="/precos" className="rounded-full bg-ink px-4 py-2 text-sm text-paper">
+                        Liberar no {ROTULO_PLANO[exigido]}
+                      </Link>
+                    )}
                     {temDemo && (
                       <button
                         type="button"
@@ -105,13 +123,19 @@ export function TemplatePicker({ onEscolher, onCancelar, titulo = "Escolha um po
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-5 py-3">
               <p className="text-sm opacity-80">{demo.nome}</p>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="rounded-full bg-accent px-4 py-2 text-sm text-white"
-                  onClick={() => onEscolher(paginaDemo)}
-                >
-                  Usar este
-                </button>
+                {planoPermite(plano, demo.plano || "free") ? (
+                  <button
+                    type="button"
+                    className="rounded-full bg-accent px-4 py-2 text-sm text-white"
+                    onClick={() => onEscolher(paginaDemo)}
+                  >
+                    Usar este
+                  </button>
+                ) : (
+                  <Link to="/precos" className="rounded-full bg-white px-4 py-2 text-sm text-ink">
+                    Liberar no {ROTULO_PLANO[demo.plano]}
+                  </Link>
+                )}
                 <button type="button" className="rounded-full px-4 py-2 text-sm opacity-80 hover:opacity-100" onClick={() => setDemoId(null)}>
                   Fechar
                 </button>

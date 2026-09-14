@@ -37,6 +37,8 @@ const LAYOUTS = {
     { id: "pilha", nome: "Pilha", descricao: "Botões largos, um embaixo do outro." },
     { id: "linha", nome: "Linha", descricao: "Botões lado a lado." },
     { id: "pills", nome: "Pílulas", descricao: "Compactos, quebra sozinho." },
+    { id: "grade", nome: "Grade", descricao: "Duas colunas de botões." },
+    { id: "cartoes", nome: "Cartões", descricao: "Título, texto e seta — um embaixo do outro." },
   ],
   icones: [
     { id: "centro", nome: "Centro", descricao: "Ícones agrupados no meio." },
@@ -48,6 +50,11 @@ const LAYOUTS = {
     { id: "esquerda", nome: "Esquerda", descricao: "Texto alinhado à esquerda.", props: { alinhamento: "esquerda" } },
     { id: "cta", nome: "Chamada", descricao: "Faixa alta, texto grande.", props: { tamanhoTitulo: "grande", minAltura: 280 } },
   ],
+  contador: [
+    { id: "caixas", nome: "Caixas", descricao: "Cada número numa caixa." },
+    { id: "linha", nome: "Relógio", descricao: "Números grandes separados por dois-pontos." },
+    { id: "discreto", nome: "Discreto", descricao: "Uma linha curta de texto." },
+  ],
 };
 
 const PADRAO = {
@@ -58,6 +65,7 @@ const PADRAO = {
   botoes: "pilha",
   icones: "centro",
   faixa: "centro",
+  contador: "caixas",
 };
 
 function amostraCapa(propsUsuario = {}) {

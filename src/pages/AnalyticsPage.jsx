@@ -24,6 +24,19 @@ function horaLabel(h) {
   return `${String(h).padStart(2, "0")}h`;
 }
 
+function dataHora(iso) {
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 function CardKpi({ icone: Icone, rotulo, valor, dica }) {
   return (
     <article className="rounded-2xl border border-line bg-paper-2 px-5 py-4">
@@ -37,25 +50,33 @@ function CardKpi({ icone: Icone, rotulo, valor, dica }) {
   );
 }
 
-function Barras({ itens, valor, rotulo }) {
+function Barras({ itens, valor, rotulo, esparso = false }) {
   const max = Math.max(1, ...itens.map(valor));
   return (
-    <div className="flex h-40 items-end gap-1">
-      {itens.map((item, index) => {
-        const altura = Math.round((valor(item) / max) * 100);
-        return (
-          <div key={rotulo(item, index)} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <div className="flex h-32 w-full items-end">
+    <div className="overflow-x-auto">
+      <div className="flex min-w-full items-end gap-1.5" style={{ minHeight: "11rem" }}>
+        {itens.map((item, index) => {
+          const n = valor(item);
+          const altura = Math.round((n / max) * 100);
+          const label = rotulo(item, index);
+          return (
+            <div
+              key={`${label || "x"}-${index}`}
+              className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
+              style={esparso ? { minWidth: "1.1rem" } : undefined}
+            >
               <div
-                className="w-full rounded-t-md bg-accent/80"
-                style={{ height: `${Math.max(altura, valor(item) ? 6 : 2)}%` }}
-                title={`${rotulo(item, index)}: ${formatar(valor(item))}`}
+                className="w-full max-w-[1.75rem] rounded-t-md bg-accent/80"
+                style={{ height: `${Math.max(n ? 8 : 2, altura) * 1.12}px` }}
+                title={`${label || `#${index}`}: ${formatar(n)}`}
               />
+              <span className="h-4 w-full truncate text-center text-[10px] leading-none text-muted">
+                {label}
+              </span>
             </div>
-            <span className="truncate text-[10px] text-muted">{rotulo(item, index)}</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -96,6 +117,7 @@ export function AnalyticsPage() {
   const dados = consulta.data;
   const totais = dados?.totais || { visitas: 0, cliques: 0, formularios: 0, porHora: [], destinos: {}, origens: {} };
   const serie = dados?.serie || [];
+  const respostas = dados?.respostas || [];
   const pagina = dados?.pagina;
   const unicos7 = serie.slice(-7).reduce((acc, dia) => acc + (dia.unicos || 0), 0);
   const visitas7 = serie.slice(-7).reduce((acc, dia) => acc + (dia.visitas || 0), 0);
@@ -153,7 +175,7 @@ export function AnalyticsPage() {
               <CardKpi icone={MousePointerClick} rotulo="Cliques" valor={formatar(totais.cliques)} dica={`${percentual(totais.cliques, totais.visitas)} das visitas`} />
               <CardKpi icone={TrendingUp} rotulo="Taxa de clique" valor={percentual(totais.cliques, totais.visitas)} dica="Cliques em links da página" />
               <CardKpi icone={Users} rotulo="Visitantes (7 dias)" valor={formatar(unicos7)} dica="Pessoas distintas no navegador" />
-              <CardKpi icone={Send} rotulo="Formulários" valor={formatar(totais.formularios)} dica="Envios do formulário da página" />
+              <CardKpi icone={Send} rotulo="Formulários" valor={formatar(totais.formularios)} dica={`${formatar(respostas.length)} com texto guardado`} />
               <CardKpi icone={Clock} rotulo="Horário de pico" valor={pico.n ? horaLabel(pico.hora) : "—"} dica={pico.n ? `${formatar(pico.n)} eventos nesse horário` : "Ainda sem pico"} />
             </div>
 
@@ -177,12 +199,13 @@ export function AnalyticsPage() {
 
             <section className="mt-4 rounded-2xl border border-line bg-paper-2 p-5">
               <h2 className="text-sm font-medium">Ao longo do dia</h2>
-              <p className="mt-1 text-xs text-muted">Quando as pessoas mais aparecem</p>
+              <p className="mt-1 text-xs text-muted">Quando as pessoas mais aparecem (UTC)</p>
               <div className="mt-4">
                 <Barras
-                  itens={(totais.porHora || []).map((n, hora) => ({ hora, n }))}
+                  esparso
+                  itens={(totais.porHora || Array.from({ length: 24 }, () => 0)).map((n, hora) => ({ hora, n }))}
                   valor={(item) => item.n}
-                  rotulo={(item) => (item.hora % 3 === 0 ? horaLabel(item.hora) : "")}
+                  rotulo={(item) => (item.hora % 4 === 0 ? horaLabel(item.hora) : "")}
                 />
               </div>
             </section>
@@ -191,6 +214,33 @@ export function AnalyticsPage() {
               <Ranking titulo="Links mais clicados" itens={destinos} />
               <Ranking titulo="De onde vieram" itens={origens} />
             </div>
+
+            <section className="mt-4 rounded-2xl border border-line bg-paper-2 p-5">
+              <h2 className="text-sm font-medium">Respostas do formulário</h2>
+              <p className="mt-1 text-xs text-muted">As últimas mensagens recebidas pela página</p>
+              {respostas.length === 0 ? (
+                <p className="mt-4 text-sm text-muted">Nenhuma resposta ainda. Quando alguém enviar o formulário, ela aparece aqui.</p>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {respostas.map((item) => (
+                    <li key={item.id} className="rounded-xl border border-line bg-paper px-4 py-3">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium">{item.assunto || "Mensagem"}</p>
+                        <p className="text-xs text-muted">{dataHora(item.recebidoEm)}</p>
+                      </div>
+                      <dl className="mt-2 space-y-1 text-sm">
+                        {(item.campos || []).map((campo) => (
+                          <div key={`${item.id}-${campo.rotulo}`} className="grid gap-0.5 sm:grid-cols-[8rem_1fr]">
+                            <dt className="text-muted">{campo.rotulo}</dt>
+                            <dd className="min-w-0 break-words">{campo.valor}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </>
         )}
       </div>

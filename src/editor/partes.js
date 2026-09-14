@@ -38,6 +38,10 @@ const PARTES_FIXAS = {
     { id: "titulo", nome: "Título da faixa" },
     { id: "subtitulo", nome: "Subtítulo" },
   ],
+  contador: [
+    { id: "titulo", nome: "Chamada", dica: "A linha acima dos números" },
+    { id: "relogio", nome: "Números", dica: "A contagem em si" },
+  ],
 };
 
 const PARTES_LISTA = {
@@ -130,6 +134,7 @@ const CAMPOS_DA_PARTE = {
   formulario: { titulo: { titulo: "" } },
   secao: { titulo: { titulo: "" }, subtitulo: { subtitulo: "" } },
   faixa: { titulo: { titulo: "" }, subtitulo: { subtitulo: "" } },
+  contador: { titulo: { titulo: "" } },
 };
 
 /** Remove a parte: item de lista sai da lista, campo fixo volta a vazio. */

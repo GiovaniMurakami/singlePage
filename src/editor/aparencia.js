@@ -200,11 +200,27 @@ export function caixaDoBloco(props = {}) {
   if (definido(props.margemCima)) estilo.marginTop = px(props.margemCima);
   if (definido(props.margemBaixo)) estilo.marginBottom = px(props.margemBaixo);
   if (props.corTexto) estilo.color = props.corTexto;
+  if (props.borda) {
+    estilo.border = `${props.bordaLargura || 2}px solid ${props.borda}`;
+  }
+  if (props.sombraDura) estilo.boxShadow = props.sombraDura;
   return estilo;
 }
 
 export function estiloDoItem(item = {}, extra = {}) {
-  return { ...caixaDoBloco(item), ...extra };
+  const estilo = caixaDoBloco(item);
+  const temPadding = definido(item.paddingCima) || definido(item.paddingBaixo) || definido(item.paddingLados);
+  if (!temPadding) {
+    delete estilo.padding;
+    delete estilo.paddingTop;
+    delete estilo.paddingBottom;
+    delete estilo.paddingLeft;
+    delete estilo.paddingRight;
+  }
+  if (!definido(item.raio) && estilo.borderRadius === "1.25rem") {
+    delete estilo.borderRadius;
+  }
+  return { ...estilo, ...extra };
 }
 
 export function estiloDaParte(props = {}, parteId, extra = {}) {

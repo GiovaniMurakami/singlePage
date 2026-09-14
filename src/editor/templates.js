@@ -1,6 +1,10 @@
 import { iconePadrao } from "./icones";
 import { aplicarCaixaNaParte } from "./partes";
 import { LAYOUTS_EXTRA } from "./templatesLayouts";
+import { TEMPLATES_ESTILO } from "./templatesEstilo";
+import { TEMPLATES_LANDING } from "./templatesLanding";
+import { TEMPLATES_FORMULARIO } from "./templatesFormulario";
+import { TEMPLATES_PORTFOLIO } from "./templatesPortfolio";
 
 function bloco(tipo, props) {
   return { id: crypto.randomUUID(), tipo, props };
@@ -45,8 +49,13 @@ export const TIPOS_PECA = [
   { tipo: "navegacao", nome: "Menu", descricao: "Pula para seções da página", icone: "Menu" },
   { tipo: "cartoes", nome: "Cartões", descricao: "Grade de cards com ícone e texto", icone: "LayoutGrid" },
   { tipo: "depoimentos", nome: "Depoimentos", descricao: "Frases de quem já usou", icone: "Quote" },
+  { tipo: "contador", nome: "Contagem regressiva", descricao: "Conta até uma data e hora", icone: "Timer", plano: "ultra" },
   { tipo: "rodape", nome: "Rodapé", descricao: "Linha final da página", icone: "Minus" },
 ];
+
+export function planoDoTipo(tipo) {
+  return TIPOS_PECA.find((item) => item.tipo === tipo)?.plano || "free";
+}
 
 export const TIPOS_BLOCO = [...TIPOS_ESTRUTURA, ...TIPOS_PECA];
 
@@ -122,6 +131,14 @@ export function botaoPadrao(extras = {}) {
     hoverSombra: true,
     ...extras,
   };
+}
+
+/** Data local no formato aceito por input[type=datetime-local]. */
+export function dataDaqui(dias) {
+  const data = new Date(Date.now() + dias * 86400000);
+  data.setMinutes(0, 0, 0);
+  const pad = (valor) => String(valor).padStart(2, "0");
+  return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(data.getDate())}T${pad(data.getHours())}:${pad(data.getMinutes())}`;
 }
 
 export function blocoPadrao(tipo) {
@@ -209,6 +226,13 @@ export function blocoPadrao(tipo) {
     },
     divisor: { estilo: "linha" },
     rodape: { texto: "© Você" },
+    contador: {
+      layoutId: "caixas",
+      titulo: "Faltam",
+      alvo: dataDaqui(7),
+      mostrarSegundos: true,
+      textoFim: "Chegou o dia.",
+    },
     grade: {
       colunas: 2,
       proporcao: "iguais",
@@ -461,6 +485,10 @@ export const TEMPLATES = [
       }),
     ],
   },
+  ...TEMPLATES_ESTILO,
+  ...TEMPLATES_LANDING,
+  ...TEMPLATES_FORMULARIO,
+  ...TEMPLATES_PORTFOLIO,
   ...LAYOUTS_EXTRA,
 ];
 

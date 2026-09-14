@@ -6,11 +6,15 @@ import { AnuncioSlot } from "../components/ui/AnuncioSlot";
 import { enviarFormularioPagina } from "../services/backendApi";
 import { TIPOS_ESTRUTURA, TIPOS_PECA, camposDoFormulario, ehTipoEstrutura, nomeDoTipo } from "./templates";
 import { layoutIdDoBloco, temLayouts } from "./blocoLayouts";
-import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloDaParte, estiloDoItem, estiloMidia, temaDoBloco } from "./aparencia";
+import { caixaDoBloco, classeBotaoTamanho, classeTexto, classeTitulo, estiloDaParte, estiloDoItem, estiloMidia, raioCss, temaDoBloco } from "./aparencia";
 import { FONTES, cssAlinhamento, cssOrientacao } from "./fontes";
 import { cssFundo } from "./fundo";
 import { encerrarLevantamento, iniciarLevantamento } from "./arrastoVisual";
 import { fonteCaixaDaParte, idParte, partesDoBloco, podeRemoverParte, separarAlvo } from "./partes";
+import { ALVO_FUNDO, ALVO_PAGINA } from "./alvos";
+import { formaBotao, raioIcone } from "./estilos";
+import { ROTULO_PLANO, planoPermite } from "./planos";
+import { useAuth } from "../context/AuthContext";
 
 const LARGURAS = {
   estreita: "36rem",
@@ -149,6 +153,8 @@ function criarMarcador(bloco, selecionadoId, onSelect, extras = {}) {
 }
 
 function MenuPecas({ ancoraRef, onEscolher, onFechar, permitirEstrutura = false }) {
+  const { usuario } = useAuth();
+  const plano = usuario?.plano || "free";
   const [busca, setBusca] = useState("");
   const [pos, setPos] = useState({ top: 0, left: 0, abrirCima: false });
   const caixa = useRef(null);
@@ -224,22 +230,30 @@ function MenuPecas({ ancoraRef, onEscolher, onFechar, permitirEstrutura = false 
         {grupos.map((grupo) => (
           <div key={grupo.nome}>
             <p className="menu-pecas-grupo">{grupo.nome}</p>
-            {grupo.itens.map((tipo) => (
-              <button
-                key={tipo.tipo}
-                type="button"
-                className="menu-pecas-item"
-                onClick={() => onEscolher(tipo.tipo)}
-              >
-                <span className="menu-pecas-icone">
-                  {tipo.icone ? <IconeLucide nome={tipo.icone} size={14} color="currentColor" /> : <Plus size={14} />}
-                </span>
-                <span>
-                  <strong className="block">{tipo.nome}</strong>
-                  <span className="menu-pecas-dica">{tipo.descricao}</span>
-                </span>
-              </button>
-            ))}
+            {grupo.itens.map((tipo) => {
+              const liberada = planoPermite(plano, tipo.plano);
+              return (
+                <button
+                  key={tipo.tipo}
+                  type="button"
+                  className="menu-pecas-item"
+                  data-travada={liberada ? undefined : "true"}
+                  title={liberada ? undefined : `Disponível no plano ${ROTULO_PLANO[tipo.plano]}`}
+                  onClick={() => (liberada ? onEscolher(tipo.tipo) : window.open("/precos", "_blank"))}
+                >
+                  <span className="menu-pecas-icone">
+                    {tipo.icone ? <IconeLucide nome={tipo.icone} size={14} color="currentColor" /> : <Plus size={14} />}
+                  </span>
+                  <span>
+                    <strong className="block">
+                      {tipo.nome}
+                      {!liberada && <span className="menu-pecas-selo">{ROTULO_PLANO[tipo.plano]}</span>}
+                    </strong>
+                    <span className="menu-pecas-dica">{tipo.descricao}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ))}
         {!grupos.length && <p className="menu-pecas-dica px-2 py-3">Nada com esse nome.</p>}
@@ -292,26 +306,36 @@ function embedUrl(url = "") {
   return url;
 }
 
-function estiloBotao(estilo, tema, item = {}) {
+function estiloBotao(estilo, tema, item = {}, forma = {}) {
+  const daForma = forma.base || {};
   if (estilo === "texto") {
     return { className: "underline-offset-4", style: { color: item.cor || tema.destaque, background: "transparent" } };
   }
   if (estilo === "contorno") {
     return {
-      className: "border",
-      style: { borderColor: item.fundo || tema.destaque, color: item.cor || tema.texto, background: "transparent" },
+      className: `border ${forma.className || ""}`,
+      style: {
+        ...daForma,
+        borderColor: item.fundo || daForma.borderColor || tema.destaque,
+        color: item.cor || daForma.color || tema.texto,
+        background: "transparent",
+      },
     };
   }
   return {
-    className: "",
-    style: { background: item.fundo || tema.destaque, color: item.cor || "#ffffff" },
+    className: forma.className || "",
+    style: {
+      ...daForma,
+      background: item.fundo || daForma.background || tema.destaque,
+      color: item.cor || daForma.color || tema.botaoCor || "#ffffff",
+    },
   };
 }
 
-function raioPadraoBotao(item = {}) {
+function raioPadraoBotao(item = {}, forma = {}) {
   if (item.raio !== "" && item.raio != null) return undefined;
   if ((item.estilo || "preenchido") === "texto") return undefined;
-  return "999px";
+  return forma.raio || "999px";
 }
 
 function itemBotaoCapa(props, extras = {}) {
@@ -349,7 +373,8 @@ function estiloInterativo(item, base = {}) {
 }
 
 function BotaoPagina({ item, tema, className = "" }) {
-  const visual = estiloBotao(item.estilo || "preenchido", tema, item);
+  const forma = formaBotao(tema.botao);
+  const visual = estiloBotao(item.estilo || "preenchido", tema, item, forma);
   const tamanho = classeBotaoTamanho(item.tamanho || item.tamanhoBotao);
   const estilo = estiloDoItem(item, estiloInterativo({
     ...item,
@@ -357,17 +382,54 @@ function BotaoPagina({ item, tema, className = "" }) {
     cor: item.cor || visual.style.color,
     borda: visual.style.borderColor,
   }, visual.style));
-  const raioPadrao = raioPadraoBotao(item);
+  const raioPadrao = raioPadraoBotao(item, forma);
   if (raioPadrao) estilo.borderRadius = raioPadrao;
+  if (item.bordaLargura) {
+    estilo.borderWidth = item.bordaLargura;
+    estilo.borderStyle = "solid";
+    estilo.borderColor = item.borda || estilo.borderColor || "currentColor";
+  }
+  if (item.sombraDura) {
+    estilo.boxShadow = item.sombraDura;
+  }
+
+  const temExtra = item.subtitulo || item.icone || item.seta;
+  const alinhamento = item.alinhamentoConteudo || (temExtra ? "between" : "center");
+  const gap = item.gap != null ? item.gap : (temExtra ? 12 : undefined);
+
   return (
     <a
       href={item.url || "#"}
       target={item.novaAba ? "_blank" : undefined}
       rel={item.novaAba ? "noreferrer" : undefined}
-      className={`item-interativo inline-flex items-center justify-center font-medium ${tamanho} ${visual.className} ${className}`}
-      style={estilo}
+      className={`item-interativo inline-flex font-medium ${tamanho} ${visual.className} ${className} ${item.animacao ? classeAnimacaoIcone(item.animacao) : ""}`}
+      style={{
+        ...estilo,
+        gap,
+        justifyContent: alinhamento === "between" ? "space-between" : alinhamento === "inicio" ? "flex-start" : "center",
+        textAlign: item.subtitulo ? "left" : undefined,
+      }}
     >
-      {item.rotulo}
+      <span className={item.subtitulo ? "flex min-w-0 flex-col gap-0.5" : "inline-flex items-center gap-2"}>
+        {item.icone && !item.iconeDireita ? (
+          <IconeLucide nome={item.icone} size={item.iconeTamanho || 16} color="currentColor" strokeWidth={item.traco || 2} />
+        ) : null}
+        <span className="min-w-0">
+          <span className={item.subtitulo ? "block text-sm font-semibold uppercase tracking-[0.04em]" : undefined}>{item.rotulo}</span>
+          {item.subtitulo ? <span className="block text-xs font-normal opacity-70">{item.subtitulo}</span> : null}
+        </span>
+      </span>
+      {(item.seta || item.iconeDireita) ? (
+        <span className="inline-flex shrink-0 items-center justify-center" style={item.iconeCaixa ? {
+          width: 28,
+          height: 28,
+          borderRadius: 6,
+          background: item.iconeCaixa,
+          color: item.iconeCaixaCor || "#111",
+        } : undefined}>
+          <IconeLucide nome={item.iconeDireita || "ArrowUpRight"} size={item.iconeTamanho || 14} color="currentColor" strokeWidth={2.2} />
+        </span>
+      ) : null}
     </a>
   );
 }
@@ -469,6 +531,7 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
   if (layoutId === "fullbleed") {
     return (
       <section
+        data-layout="fullbleed"
         className="relative flex min-h-[20rem] items-end overflow-hidden py-10 md:min-h-[26rem] md:py-16"
         style={{
           ...caixaDoBloco(props),
@@ -619,12 +682,22 @@ function BlocoBotoes({ props, tema, marcar = semMarca }) {
       ? "flex flex-wrap justify-center gap-3 py-6"
       : layoutId === "pills"
         ? "flex flex-wrap justify-center gap-2 py-6"
-        : "flex flex-col gap-3 py-6";
-  const botaoClass = layoutId === "linha" ? "min-h-12 px-6" : layoutId === "pills" ? "min-h-9 px-4 text-xs" : "min-h-12 w-full";
+        : layoutId === "grade"
+          ? "grid gap-3 py-6 sm:grid-cols-2"
+          : "mx-auto flex max-w-md flex-col gap-3 py-6";
+  const botaoClass = layoutId === "linha"
+    ? "min-h-12 px-6"
+    : layoutId === "pills"
+      ? "min-h-9 px-4 text-xs"
+      : layoutId === "grade"
+        ? "min-h-14 w-full px-4 py-3"
+        : layoutId === "cartoes"
+          ? "min-h-[4.5rem] w-full px-4 py-3"
+          : "min-h-12 w-full max-w-sm";
   return (
     <div className={classe} style={caixaDoBloco(props)}>
       {(props.itens || []).map((item, index) => (
-        <div key={`${item.rotulo}-${index}`} className="contents">
+        <div key={`${item.rotulo}-${index}`} className={layoutId === "pilha" || layoutId === "cartoes" ? "flex justify-center" : "contents"}>
           {marcar(`item-${index}`, <BotaoPagina item={item} tema={local} className={botaoClass} />)}
         </div>
       ))}
@@ -864,8 +937,18 @@ function BlocoFormulario({ props, tema, interativo, marcar = semMarca, slug }) {
   const local = temaDoBloco(props, tema);
   const estiloBotaoEnvio = estiloDaParte(props, "botao", { background: local.destaque });
   if (raioPadraoBotao(props.estiloPartes?.botao || {})) estiloBotaoEnvio.borderRadius = "999px";
+  const alinhamento = local.alinhamento === "esquerda"
+    ? "mr-auto"
+    : local.alinhamento === "direita"
+      ? "ml-auto"
+      : "mx-auto";
   return (
-    <form className="py-10" onSubmit={enviar} id="formulario" style={caixaDoBloco(props)}>
+    <form
+      className={`formulario-pagina w-full max-w-sm py-10 ${alinhamento}`}
+      onSubmit={enviar}
+      id="formulario"
+      style={caixaDoBloco(props)}
+    >
       {props.titulo && marcar("titulo", (
         <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
@@ -878,7 +961,7 @@ function BlocoFormulario({ props, tema, interativo, marcar = semMarca, slug }) {
               valor={valores[campo.id]}
               onChange={(valor) => setValor(campo.id, valor)}
               interativo={interativo}
-              className=""
+              className="w-full"
             />
           ))}
         </div>
@@ -986,6 +1069,111 @@ function BlocoRodape({ props }) {
   );
 }
 
+function restanteAte(alvo, agora) {
+  const destino = alvo ? new Date(alvo).getTime() : NaN;
+  if (Number.isNaN(destino)) return null;
+  const segundos = Math.max(0, Math.floor((destino - agora) / 1000));
+  return {
+    acabou: segundos <= 0,
+    dias: Math.floor(segundos / 86400),
+    horas: Math.floor((segundos % 86400) / 3600),
+    minutos: Math.floor((segundos % 3600) / 60),
+    segundos: segundos % 60,
+  };
+}
+
+function BlocoContador({ props, tema, marcar = semMarca }) {
+  const local = temaDoBloco(props, tema);
+  const layoutId = layoutIdDoBloco("contador", props);
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const restante = restanteAte(props.alvo, agora);
+  const caixa = caixaDoBloco(props);
+  const titulo = props.titulo && marcar("titulo", (
+    <p className={`${classeTexto(props.tamanhoTexto)} opacity-70`} style={estiloDaParte(props, "titulo")}>{props.titulo}</p>
+  ));
+
+  if (!restante || restante.acabou) {
+    return (
+      <div className="py-8" style={caixa}>
+        {marcar("relogio", (
+          <p className={classeTitulo("texto", props.tamanhoTitulo)}>
+            {restante ? (props.textoFim || "Chegou o dia.") : "Escolha a data no painel"}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  const unidades = [
+    { chave: "dias", valor: restante.dias, rotulo: "dias" },
+    { chave: "horas", valor: restante.horas, rotulo: "horas" },
+    { chave: "minutos", valor: restante.minutos, rotulo: "min" },
+    ...(props.mostrarSegundos === false ? [] : [{ chave: "segundos", valor: restante.segundos, rotulo: "seg" }]),
+  ];
+  const doisDigitos = (valor) => String(valor).padStart(2, "0");
+
+  if (layoutId === "discreto") {
+    return (
+      <div className="py-6" style={caixa}>
+        {titulo}
+        {marcar("relogio", (
+          <p className={classeTexto(props.tamanhoTexto)}>
+            {restante.dias}d {doisDigitos(restante.horas)}:{doisDigitos(restante.minutos)}
+            {props.mostrarSegundos === false ? "" : `:${doisDigitos(restante.segundos)}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  if (layoutId === "linha") {
+    return (
+      <div className="py-8" style={caixa}>
+        {titulo}
+        {marcar("relogio", (
+          <p className="mt-2 text-4xl font-semibold tabular-nums sm:text-6xl">
+            {unidades.map((unidade, indice) => (
+              <span key={unidade.chave}>
+                {indice ? <span className="opacity-40">:</span> : null}
+                {doisDigitos(unidade.valor)}
+              </span>
+            ))}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-8" style={caixa}>
+      {titulo}
+      {marcar("relogio", (
+        <div className="mt-3 flex flex-wrap justify-center gap-3">
+          {unidades.map((unidade) => (
+            <div
+              key={unidade.chave}
+              className="min-w-[4.5rem] px-3 py-3"
+              style={{
+                background: props.corCaixa || `${local.destaque}1f`,
+                borderRadius: raioCss(props, "1rem"),
+              }}
+            >
+              <p className="text-2xl font-semibold tabular-nums sm:text-4xl">{doisDigitos(unidade.valor)}</p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] opacity-60">{unidade.rotulo}</p>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BlocoCartoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
   const layoutId = layoutIdDoBloco("cartoes", props);
@@ -1074,7 +1262,8 @@ function BlocoFaixa({ props, tema, interativo, filhos, marcar = semMarca }) {
   );
 }
 
-function BlocoIcones({ props, marcar = semMarca }) {
+function BlocoIcones({ props, tema = {}, marcar = semMarca }) {
+  const raioDoEstilo = raioIcone(tema.iconeForma);
   const layoutId = layoutIdDoBloco("icones", props);
   const classe = props.display
     ? "py-6"
@@ -1089,7 +1278,7 @@ function BlocoIcones({ props, marcar = semMarca }) {
         const lado = (item.tamanho || 22) + (item.padding || 12) * 2;
         const visual = (
           <span
-            className="item-interativo"
+            className="item-interativo icone-interativo"
             style={estiloDoItem(item, {
               ...estiloInterativo(item),
               display: "inline-flex",
@@ -1097,7 +1286,7 @@ function BlocoIcones({ props, marcar = semMarca }) {
               justifyContent: "center",
               width: lado,
               height: lado,
-              borderRadius: item.raio ?? 18,
+              borderRadius: item.raio ?? raioDoEstilo ?? 18,
             })}
           >
             <span className={classeAnimacaoIcone(item.animacao)}>
@@ -1140,6 +1329,7 @@ const COMPONENTES = {
   divisor: BlocoDivisor,
   rodape: BlocoRodape,
   icones: BlocoIcones,
+  contador: BlocoContador,
   cartoes: BlocoCartoes,
   grade: BlocoGrade,
   faixa: BlocoFaixa,
@@ -1222,6 +1412,12 @@ function ItemCanvas({ bloco, tema, editor, faixaTema, slug }) {
   const alvo = arrasto?.sobreId === bloco.id;
   const estrutura = ehTipoEstrutura(bloco.tipo);
   const ehMenu = bloco.tipo === "navegacao";
+  const ehFormulario = bloco.tipo === "formulario";
+  const alinhamentoForm = (faixaTema || tema)?.alinhamento === "esquerda"
+    ? "mr-auto"
+    : (faixaTema || tema)?.alinhamento === "direita"
+      ? "ml-auto"
+      : "mx-auto";
   const caixa = useRef(null);
 
   useEffect(() => {
@@ -1394,7 +1590,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema, slug }) {
           onSobreArrasto(bloco.id, evento.clientY < ret.top + ret.height / 2 ? "antes" : "depois");
         } : undefined}
         onDrop={onSoltarArrasto ? (evento) => soltarEm(evento, bloco.id) : undefined}
-        className={`bloco-editor group relative w-full rounded-2xl ${estrutura ? "bloco-estrutura" : ""} ${ehMenu ? "bloco-editor-menu" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
+        className={`bloco-editor group relative rounded-2xl ${ehFormulario ? `w-full max-w-sm ${alinhamentoForm}` : "w-full"} ${estrutura ? "bloco-estrutura" : ""} ${ehMenu ? "bloco-editor-menu" : ""} ${arrasto?.id === bloco.id ? "bloco-levantando" : ""}`}
       >
         {podeArrastar && (
           <div
@@ -1515,21 +1711,48 @@ export function PageRenderer({
     }
     : null;
 
+  const casca = tema.casca || "coluna";
   const canvas = (
     <div
-      className={compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-col" : "flex min-h-screen flex-col"}
+      className={`pagina-skin ${compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-col" : "flex min-h-screen flex-col"}`}
       data-pagina-canvas
+      data-selecao={selecionadoId === ALVO_FUNDO ? "fundo" : undefined}
+      data-casca={casca}
+      data-textura={tema.textura || "nenhuma"}
+      data-botao={tema.botao || "pilula"}
+      data-icone={tema.iconeForma || "simples"}
+      data-titulo={tema.tituloForma || "pesado"}
       style={{
         ...cssFundo(tema),
         color: tema.texto,
         fontFamily: FONTES[tema.fonte] || FONTES.sans,
         textAlign: cssAlinhamento(tema.alinhamento) || "center",
         ...cssOrientacao(tema.orientacao),
+        "--skin-tinta": tema.tinta || tema.texto,
+        ...(tema.cascaFundo ? { "--casca-fundo": tema.cascaFundo } : {}),
+        ...(tema.cascaCor ? { "--casca-cor": tema.cascaCor } : {}),
+        ...(tema.cascaBorda ? { "--casca-borda": tema.cascaBorda } : {}),
+        ...(tema.cascaSombra ? { "--casca-sombra": tema.cascaSombra } : {}),
+        ...(tema.cascaFita ? { "--casca-fita": tema.cascaFita } : {}),
+        ...(tema.cascaRaio != null && tema.cascaRaio !== "" ? { "--casca-raio": `${Number(tema.cascaRaio)}px` } : {}),
       }}
+      onClick={onSelect ? (evento) => {
+        if (evento.target.closest(".bloco-editor, .parte-alvo, .ponto-insercao, .zona-vazia, .celula-editor, [data-editor-chrome], [data-pagina-caixa]")) return;
+        onSelect(ALVO_FUNDO);
+      } : undefined}
       onDragOver={onSobreArrasto ? (e) => e.preventDefault() : undefined}
       onDrop={onSoltarArrasto && !(pagina.blocos || []).length ? (e) => { e.preventDefault(); onSoltarArrasto(null, "depois", lerDadosArrasto(e)); } : undefined}
     >
-      <div className={`mx-auto w-full px-4 py-8 sm:px-6 sm:py-10 ${mostrarAnuncios ? "pagina-conteudo-com-trilhos" : ""} ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`} style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}>
+      <div
+        data-pagina-caixa
+        data-selecao={selecionadoId === ALVO_PAGINA ? "pagina" : undefined}
+        className={`mx-auto w-full px-4 py-8 sm:px-6 sm:py-10 ${mostrarAnuncios ? "pagina-conteudo-com-trilhos" : ""} ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`}
+        style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}
+        onClick={onSelect ? (evento) => {
+          if (evento.target.closest(".bloco-editor, .parte-alvo, .ponto-insercao, .zona-vazia, .celula-editor, [data-editor-chrome]")) return;
+          onSelect(ALVO_PAGINA);
+        } : undefined}
+      >
         {onInserir && blocos.length > 0 && (
           <PontoDeInsercao
             permitirEstrutura

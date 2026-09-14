@@ -36,12 +36,9 @@ export function PublicPage({ slugForcado }) {
       if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
       registrarEventoPagina(paginaPronta.slug, { tipo: "clique", alvo: href.slice(0, 400) });
     };
-    const enviou = () => registrarEventoPagina(paginaPronta.slug, { tipo: "formulario" });
     document.addEventListener("click", clicou, true);
-    document.addEventListener("submit", enviou, true);
     return () => {
       document.removeEventListener("click", clicou, true);
-      document.removeEventListener("submit", enviou, true);
     };
   }, [paginaPronta?.slug]);
 

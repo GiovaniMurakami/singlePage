@@ -5,6 +5,33 @@ import { CabecalhoAjuste, Campo, CampoArquivo, CampoCor, CampoFundo, CamposEspac
 import { ListaIcones } from "./editorItens";
 import { aplicarCaixaNaParte, fonteCaixaDaParte, idParte, indiceDaParte, parteDoBloco, partesDoBloco } from "./partes";
 import { CartaoLayouts } from "./LayoutPickerModal";
+import { CASCAS, ESTILOS, FORMAS_BOTAO, FORMAS_ICONE, FORMAS_TITULO, TEXTURAS, aplicarEstilo } from "./estilos";
+import { ROTULO_PLANO, planoPermite } from "./planos";
+import { cssFundo } from "./fundo";
+import { useAuth } from "../context/AuthContext";
+import { ICONES_CATALOGO } from "./icones";
+
+const ACESSORIOS_BOTAO = [
+  { id: "nenhum", nome: "Nenhum" },
+  { id: "seta", nome: "Setinha" },
+  { id: "icone", nome: "Ícone" },
+];
+
+function acessorioDoBotao(botao = {}) {
+  if (botao.seta) return "seta";
+  if (botao.icone || botao.iconeDireita) return "icone";
+  return "nenhum";
+}
+
+function aplicarAcessorio(acessorio) {
+  if (acessorio === "seta") {
+    return { seta: true, iconeDireita: "", icone: "" };
+  }
+  if (acessorio === "icone") {
+    return { seta: false, icone: "Mail", iconeDireita: "" };
+  }
+  return { seta: false, icone: "", iconeDireita: "", iconeCaixa: "" };
+}
 
 function CartaoLayout({ bloco, set }) {
   const perfil = perfilLayout(bloco.tipo);
@@ -15,20 +42,28 @@ function CartaoLayout({ bloco, set }) {
   );
 }
 
-function CartoesDoBloco({ children, bloco, tema, set, onEscolherImagem, titulo = true, corpo = true, fundo = true, destaque = false, corKey = "corFundo", aberto = true }) {
+function CartoesDoBloco({ children, bloco, tema, set, onEscolherImagem, titulo = true, corpo = true, fundo = true, destaque = false, corKey = "corFundo", aberto = true, modo = "tudo" }) {
+  const conteudo = modo !== "aparencia";
+  const aparencia = modo !== "conteudo";
   return (
     <div className="space-y-2">
-      <CartaoLayouts bloco={bloco} set={set} tema={tema} />
-      <CartaoAjuste titulo={nomeDoTipo(bloco.tipo)} resumo={bloco.props.titulo || bloco.props.texto || bloco.props.ancora} abertoPadrao={aberto}>
-        {children}
-      </CartaoAjuste>
-      <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-        <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={titulo} corpo={corpo} fundo={fundo} destaque={destaque} corKey={corKey} />
-      </CartaoAjuste>
-      <CartaoLayout bloco={bloco} set={set} />
-      <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-        <CamposEspaco props={bloco.props} onChange={set} />
-      </CartaoAjuste>
+      {conteudo && (
+        <CartaoAjuste titulo={nomeDoTipo(bloco.tipo)} resumo={bloco.props.titulo || bloco.props.texto || bloco.props.ancora} abertoPadrao={aberto}>
+          {children}
+        </CartaoAjuste>
+      )}
+      {aparencia && (
+        <>
+          <CartaoLayouts bloco={bloco} set={set} tema={tema} />
+          <CartaoAjuste titulo="Fundo e texto" abertoPadrao>
+            <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={titulo} corpo={corpo} fundo={fundo} destaque={destaque} corKey={corKey} />
+          </CartaoAjuste>
+          <CartaoLayout bloco={bloco} set={set} />
+          <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
+            <CamposEspaco props={bloco.props} onChange={set} />
+          </CartaoAjuste>
+        </>
+      )}
     </div>
   );
 }
@@ -84,10 +119,21 @@ function CamposAparencia({ props, tema, onChange, onEscolherImagem, bloco, titul
 }
 
 function CamposBotao({ botao, onChange }) {
+  const acessorio = acessorioDoBotao(botao);
+  const iconeAtual = botao.icone || botao.iconeDireita || "Mail";
+
   return (
     <div className="space-y-2">
       <Campo label="Texto">
         <input className={inputClass} value={botao.rotulo || ""} onChange={(e) => onChange({ rotulo: e.target.value })} />
+      </Campo>
+      <Campo label="Descrição" dica="Linha menor embaixo do nome. Deixe vazio se não quiser.">
+        <input
+          className={inputClass}
+          value={botao.subtitulo || ""}
+          onChange={(e) => onChange({ subtitulo: e.target.value })}
+          placeholder="Opcional"
+        />
       </Campo>
       <Campo label="Link">
         <input className={inputClass} value={botao.url || ""} onChange={(e) => onChange({ url: e.target.value })} placeholder="https:// ou mailto:" />
@@ -99,10 +145,112 @@ function CamposBotao({ botao, onChange }) {
           ))}
         </select>
       </Campo>
+      <Campo label="Tamanho">
+        <Pills
+          valor={botao.tamanho || botao.tamanhoBotao || "medio"}
+          opcoes={TAMANHOS_BOTAO.filter((item) => item.id)}
+          onChange={(tamanho) => onChange({ tamanho })}
+        />
+      </Campo>
+      <Campo label="Extra no botão">
+        <Pills
+          valor={acessorio}
+          opcoes={ACESSORIOS_BOTAO}
+          onChange={(valor) => onChange(aplicarAcessorio(valor))}
+        />
+      </Campo>
+      {acessorio === "seta" && (
+        <Campo label="Tipo de seta">
+          <Pills
+            valor={botao.iconeDireita === "ExternalLink" ? "ExternalLink" : "ArrowUpRight"}
+            opcoes={[
+              { id: "ArrowUpRight", nome: "Diagonal" },
+              { id: "ExternalLink", nome: "Link externo" },
+              { id: "ArrowRight", nome: "Para a direita" },
+            ]}
+            onChange={(iconeDireita) => onChange({ seta: true, iconeDireita, icone: "" })}
+          />
+        </Campo>
+      )}
+      {acessorio === "icone" && (
+        <>
+          <Campo label="Ícone">
+            <select
+              className={inputClass}
+              value={iconeAtual}
+              onChange={(e) => onChange({ icone: e.target.value, iconeDireita: "", seta: false })}
+            >
+              {ICONES_CATALOGO.map((nome) => (
+                <option key={nome} value={nome}>{nome}</option>
+              ))}
+            </select>
+          </Campo>
+          <Campo label="Posição do ícone">
+            <Pills
+              valor={botao.iconeDireita ? "direita" : "esquerda"}
+              opcoes={[
+                { id: "esquerda", nome: "Esquerda" },
+                { id: "direita", nome: "Direita" },
+              ]}
+              onChange={(lado) => {
+                if (lado === "direita") {
+                  onChange({ iconeDireita: iconeAtual, icone: "", seta: false });
+                } else {
+                  onChange({ icone: iconeAtual, iconeDireita: "", seta: false });
+                }
+              }}
+            />
+          </Campo>
+        </>
+      )}
+      {(acessorio === "seta" || acessorio === "icone") && (
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={Boolean(botao.iconeCaixa)}
+            onChange={(e) => onChange({ iconeCaixa: e.target.checked ? (botao.iconeCaixa || "#ffffff") : "" })}
+          />
+          Ícone dentro de uma caixinha
+        </label>
+      )}
+      {botao.iconeCaixa ? (
+        <CampoCor label="Cor da caixinha" value={botao.iconeCaixa} fallback="#ffffff" onChange={(iconeCaixa) => onChange({ iconeCaixa })} />
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <CampoCor label="Fundo" value={botao.fundo} fallback="#0071e3" onChange={(fundo) => onChange({ fundo })} />
         <CampoCor label="Texto" value={botao.cor} fallback="#ffffff" onChange={(cor) => onChange({ cor })} />
       </div>
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={Boolean(botao.bordaLargura) || Boolean(botao.borda)}
+          onChange={(e) => onChange(e.target.checked ? { borda: botao.borda || "#111111", bordaLargura: botao.bordaLargura || 2 } : { borda: "", bordaLargura: "" })}
+        />
+        Contorno
+      </label>
+      {(botao.bordaLargura || botao.borda) ? (
+        <div className="grid grid-cols-2 gap-2">
+          <CampoCor label="Cor do contorno" value={botao.borda} fallback="#111111" onChange={(borda) => onChange({ borda })} />
+          <Campo label="Espessura">
+            <input
+              type="number"
+              min="1"
+              max="6"
+              className={inputClass}
+              value={botao.bordaLargura || 2}
+              onChange={(e) => onChange({ bordaLargura: Number(e.target.value) || 2 })}
+            />
+          </Campo>
+        </div>
+      ) : null}
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={Boolean(botao.sombraDura)}
+          onChange={(e) => onChange({ sombraDura: e.target.checked ? (botao.sombraDura || "4px 4px 0 #111") : "" })}
+        />
+        Sombra deslocada
+      </label>
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -558,7 +706,7 @@ function CamposConteudoParte({ bloco, parte, tema, set, onEscolherImagem, caixa,
 }
 
 /** Ajustes de uma parte só: o texto, a foto ou o botão que você clicou na página. */
-export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem }) {
+export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem, aba = "conteudo" }) {
   const setCaixa = (extras) => {
     const proximo = aplicarCaixaNaParte(bloco, parte, extras);
     const patch = {};
@@ -566,6 +714,24 @@ export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem }) {
     if (proximo.props.estiloPartes !== bloco.props.estiloPartes) patch.estiloPartes = proximo.props.estiloPartes;
     set(patch);
   };
+
+  if (aba === "aparencia") {
+    return (
+      <div className="space-y-2">
+        {parteTemTexto(parte) && !parteUsaCamposTexto(parte) && (
+          <CamposTipografia fonte={fonteCaixaDaParte(bloco, parte)} onChange={setCaixa} />
+        )}
+        <CartoesCaixa
+          idAcordeao={`${bloco.id}:${parte.id}`}
+          fonte={fonteCaixaDaParte(bloco, parte)}
+          onChange={setCaixa}
+          layout={perfilCaixaDaParte(bloco, parte)}
+          fallbackCor={tema?.fundo || "#ffffff"}
+          onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, `parteFundo:${parte.id}`) : undefined}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -578,22 +744,11 @@ export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem }) {
         caixa={fonteCaixaDaParte(bloco, parte)}
         onCaixa={setCaixa}
       />
-      {parteTemTexto(parte) && !parteUsaCamposTexto(parte) && (
-        <CamposTipografia fonte={fonteCaixaDaParte(bloco, parte)} onChange={setCaixa} />
-      )}
-      <CartoesCaixa
-        idAcordeao={`${bloco.id}:${parte.id}`}
-        fonte={fonteCaixaDaParte(bloco, parte)}
-        onChange={setCaixa}
-        layout={perfilCaixaDaParte(bloco, parte)}
-        fallbackCor={tema?.fundo || "#ffffff"}
-        onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, `parteFundo:${parte.id}`) : undefined}
-      />
     </div>
   );
 }
 
-export function Inspector({ bloco, celula, parteId, onSelecionarParte, onChange, onAdicionarPeca, onEscolherImagem, tema }) {
+export function Inspector({ bloco, celula, parteId, onSelecionarParte, onChange, onAdicionarPeca, onEscolherImagem, tema, aba = "conteudo" }) {
   const parte = parteDoBloco(bloco, parteId);
   const partes = bloco ? partesDoBloco(bloco) : [];
   const set = (props) => onChange({ ...bloco, props: { ...bloco.props, ...props } });
@@ -612,14 +767,14 @@ export function Inspector({ bloco, celula, parteId, onSelecionarParte, onChange,
           parteAtiva={parte.id}
           onEscolher={(id) => onSelecionarParte?.(idParte(bloco.id, id))}
         />
-        <InspetorParte bloco={bloco} parte={parte} tema={tema} set={set} onEscolherImagem={onEscolherImagem} />
+        <InspetorParte aba={aba} bloco={bloco} parte={parte} tema={tema} set={set} onEscolherImagem={onEscolherImagem} />
       </div>
     );
   }
 
   return (
     <div>
-      {bloco && partes.length ? (
+      {bloco && partes.length && aba !== "aparencia" ? (
         <ListaPartes partes={partes} parteAtiva={null} onEscolher={(id) => onSelecionarParte?.(idParte(bloco.id, id))} />
       ) : null}
       <PainelBloco
@@ -629,12 +784,43 @@ export function Inspector({ bloco, celula, parteId, onSelecionarParte, onChange,
         onAdicionarPeca={onAdicionarPeca}
         onEscolherImagem={onEscolherImagem}
         tema={tema}
+        aba={aba}
       />
     </div>
   );
 }
 
-function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImagem, tema }) {
+function opcoesAparencia(tipo) {
+  switch (tipo) {
+    case "imagem":
+    case "rodape":
+    case "redes":
+    case "navegacao":
+      return { titulo: false };
+    case "galeria":
+    case "botoes":
+    case "icones":
+      return { titulo: false, corpo: false };
+    case "formulario":
+      return { corpo: false, destaque: true };
+    case "cartoes":
+    case "capa":
+      return { destaque: true };
+    case "faixa":
+      return { destaque: true, corKey: "fundo" };
+    default:
+      return {};
+  }
+}
+
+function AparenciaPadrao({ bloco, tema, set, onEscolherImagem }) {
+  const opts = opcoesAparencia(bloco.tipo);
+  return (
+    <CartoesDoBloco modo="aparencia" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} {...opts} />
+  );
+}
+
+function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImagem, tema, aba = "conteudo" }) {
   if (!bloco && celula) {
     return (
       <CartaoAjuste titulo={`Coluna ${(celula.indice ?? 0) + 1}`} resumo="Vazia — escolha uma peça">
@@ -656,14 +842,18 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   }
 
   if (!bloco) {
-    return <p className="text-sm text-muted">Clique numa peça na página. Endereço e fundo ficam em Tema.</p>;
+    return <p className="text-sm text-muted">Clique no fundo, na página ou numa peça para ajustar.</p>;
   }
 
   const set = (props) => onChange({ ...bloco, props: { ...bloco.props, ...props } });
 
+  if (aba === "aparencia") {
+    return <AparenciaPadrao bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} />;
+  }
+
   if (bloco.tipo === "capa") {
     return (
-      <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} destaque>
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} destaque>
         <Campo label="Título"><input className={inputClass} value={bloco.props.titulo || ""} onChange={(e) => set({ titulo: e.target.value })} /></Campo>
         <Campo label="Subtítulo"><textarea className={inputClass} rows={3} value={bloco.props.subtitulo || ""} onChange={(e) => set({ subtitulo: e.target.value })} /></Campo>
         <CampoArquivo
@@ -704,7 +894,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
 
   if (bloco.tipo === "texto") {
     return (
-      <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem}>
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem}>
         <Campo label="Título"><input className={inputClass} value={bloco.props.titulo || ""} onChange={(e) => set({ titulo: e.target.value })} /></Campo>
         <Campo label="Texto"><textarea className={inputClass} rows={8} value={bloco.props.corpo || ""} onChange={(e) => set({ corpo: e.target.value })} /></Campo>
       </CartoesDoBloco>
@@ -713,7 +903,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
 
   if (bloco.tipo === "imagem") {
     return (
-      <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false}>
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false}>
         <CampoArquivo
           label="Imagem"
           previewUrl={bloco.props.url}
@@ -730,9 +920,8 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
     const itens = bloco.props.itens || [];
     return (
       <div className="space-y-2">
-        <CartaoLayouts bloco={bloco} set={set} tema={tema} />
         {itens.map((item, index) => (
-          <CartaoAjuste key={index} titulo={`Botão ${index + 1}`} resumo={item.rotulo} abertoPadrao={index === 0}>
+          <CartaoAjuste key={index} titulo={`Botão ${index + 1}`} resumo={item.subtitulo ? `${item.rotulo} — ${item.subtitulo}` : item.rotulo} abertoPadrao={index === 0}>
             <CamposBotao
               botao={item}
               onChange={(proximo) => {
@@ -748,17 +937,10 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <button
           type="button"
           className="text-sm text-accent"
-          onClick={() => set({ itens: [...itens, { rotulo: "Novo botão", url: "https://", estilo: "contorno", novaAba: true }] })}
+          onClick={() => set({ itens: [...itens, { rotulo: "Novo botão", subtitulo: "", url: "https://", estilo: "preenchido", novaAba: true }] })}
         >
           Adicionar botão
         </button>
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={false} corpo={false} />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
@@ -773,13 +955,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <Campo label="Assunto"><input className={inputClass} value={bloco.props.assunto || ""} onChange={(e) => set({ assunto: e.target.value })} /></Campo>
         <Campo label="Texto do botão"><input className={inputClass} value={bloco.props.botao || ""} onChange={(e) => set({ botao: e.target.value })} /></Campo>
         <CamposDoFormulario bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} corpo={false} destaque />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
@@ -787,7 +962,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   if (bloco.tipo === "galeria") {
     const urls = bloco.props.urls || [];
     return (
-      <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false} corpo={false}>
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false} corpo={false}>
         <CampoArquivo
           label="Adicionar foto"
           onArquivo={(file) => onEscolherImagem?.(file, bloco, "galeria")}
@@ -823,13 +998,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <button type="button" className="text-sm text-accent" onClick={() => set({ itens: [...itens, { rotulo: "Nova rede", url: "https://" }] })}>
           Adicionar rede
         </button>
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={false} />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
@@ -848,13 +1016,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <button type="button" className="text-sm text-accent" onClick={() => set({ itens: [...itens, { rotulo: "Seção", ancora: "secao" }] })}>
           Adicionar item
         </button>
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={false} />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
@@ -862,15 +1023,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   if (bloco.tipo === "icones") {
     return (
       <div className="space-y-2">
-        <CartaoLayouts bloco={bloco} set={set} tema={tema} />
         <ListaIcones itens={bloco.props.itens || []} onChange={(itens) => set({ itens })} />
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={false} corpo={false} />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
@@ -880,7 +1033,7 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
     const temColunas = filhos.some((filho) => filho.tipo === "grade");
     return (
       <div className="space-y-2">
-        <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem}>
+        <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem}>
           <p className="text-xs text-muted">A seção segura colunas e peças. Cada peça abaixo é um card à parte.</p>
           <Campo label="Âncora"><input className={inputClass} value={bloco.props.ancora || ""} onChange={(e) => set({ ancora: e.target.value })} /></Campo>
           <Campo label="Título"><input className={inputClass} value={bloco.props.titulo || ""} onChange={(e) => set({ titulo: e.target.value })} /></Campo>
@@ -912,7 +1065,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
     const itens = bloco.props.itens || [];
     return (
       <div className="space-y-2">
-        <CartaoLayouts bloco={bloco} set={set} tema={tema} />
         {itens.map((item, index) => (
           <CartaoAjuste key={item.id || index} titulo={`Depoimento ${index + 1}`} resumo={item.autor} abertoPadrao={index === 0}>
             <CampoArquivo
@@ -935,20 +1087,13 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <button type="button" className="text-sm text-accent" onClick={() => set({ itens: [...itens, { id: crypto.randomUUID(), citacao: "Nova frase.", autor: "Cliente", fotoUrl: "" }] })}>
           Adicionar depoimento
         </button>
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
     );
   }
 
   if (bloco.tipo === "rodape") {
     return (
-      <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false}>
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} titulo={false}>
         <Campo label="Texto"><input className={inputClass} value={bloco.props.texto || ""} onChange={(e) => set({ texto: e.target.value })} /></Campo>
       </CartoesDoBloco>
     );
@@ -985,10 +1130,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
           <Campo label="Espaço entre colunas">
             <input type="range" min="8" max="48" value={bloco.props.gap || 24} onChange={(e) => set({ gap: Number(e.target.value) })} className="w-full" />
           </Campo>
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
         </CartaoAjuste>
         {celulas.map((celula, index) => (
           <CartaoAjuste key={celula.id || index} titulo={`Coluna ${index + 1}`} resumo={`${(celula.blocos || []).length} peça(s)`} abertoPadrao={false}>
@@ -1042,7 +1183,6 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
     const itens = bloco.props.itens || [];
     return (
       <div className="space-y-2">
-        <CartaoLayouts bloco={bloco} set={set} tema={tema} />
         <CartaoAjuste titulo="Cartões" resumo={`${itens.length} cards`}>
           <Campo label="Colunas">
             <select className={inputClass} value={bloco.props.colunas || 3} onChange={(e) => set({ colunas: Number(e.target.value) })}>
@@ -1063,21 +1203,42 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
         <button type="button" className="text-sm text-accent" onClick={() => set({ itens: [...itens, { icone: "Star", titulo: "Novo", corpo: "Descreva o card." }] })}>
           Adicionar card
         </button>
-        <CartaoAjuste titulo="Fundo e texto" abertoPadrao={false}>
-          <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} destaque />
-        </CartaoAjuste>
-        <CartaoLayout bloco={bloco} set={set} />
-        <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-          <CamposEspaco props={bloco.props} onChange={set} />
-        </CartaoAjuste>
       </div>
+    );
+  }
+
+  if (bloco.tipo === "contador") {
+    return (
+      <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} destaque>
+        <Campo label="Chamada">
+          <input className={inputClass} value={bloco.props.titulo || ""} onChange={(e) => set({ titulo: e.target.value })} />
+        </Campo>
+        <Campo label="Conta até">
+          <input
+            type="datetime-local"
+            className={inputClass}
+            value={bloco.props.alvo || ""}
+            onChange={(e) => set({ alvo: e.target.value })}
+          />
+        </Campo>
+        <Campo label="Quando zerar, mostrar">
+          <input className={inputClass} value={bloco.props.textoFim || ""} onChange={(e) => set({ textoFim: e.target.value })} />
+        </Campo>
+        <Campo label="Segundos">
+          <Pills
+            valor={bloco.props.mostrarSegundos === false ? "nao" : "sim"}
+            opcoes={[{ id: "sim", nome: "Mostrar" }, { id: "nao", nome: "Esconder" }]}
+            onChange={(valor) => set({ mostrarSegundos: valor === "sim" })}
+          />
+        </Campo>
+      </CartoesDoBloco>
     );
   }
 
   if (bloco.tipo === "faixa") {
     return (
       <div className="space-y-2">
-        <CartoesDoBloco bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} fundo={false} destaque>
+        <CartoesDoBloco modo="conteudo" bloco={bloco} tema={tema} set={set} onEscolherImagem={onEscolherImagem} fundo={false} destaque>
           <Campo label="Título"><input className={inputClass} value={bloco.props.titulo || ""} onChange={(e) => set({ titulo: e.target.value })} /></Campo>
           <Campo label="Subtítulo"><textarea className={inputClass} rows={2} value={bloco.props.subtitulo || ""} onChange={(e) => set({ subtitulo: e.target.value })} /></Campo>
           <CampoFundo
@@ -1108,60 +1269,149 @@ function PainelBloco({ bloco, celula, onChange, onAdicionarPeca, onEscolherImage
   return <p className="text-sm text-muted">Este bloco ainda não tem opções.</p>;
 }
 
-export function ThemeInspector({ tema, onChange, onEscolherImagem, extras }) {
+function MiniEstilo({ preset }) {
+  const { casca, cascaFundo, cascaRaio, texto } = preset.tema;
+  const dentro = casca === "cheia" || casca === "coluna" || casca === "moldura";
+  return (
+    <span className="block h-12 w-full overflow-hidden rounded-lg" style={cssFundo(preset.tema)}>
+      <span
+        className="mx-auto mt-2 block h-8 w-[70%]"
+        style={{
+          background: dentro ? "transparent" : (cascaFundo || "#ffffff"),
+          borderRadius: dentro ? 0 : Math.min(Number(cascaRaio ?? 16), 12),
+          borderTop: casca === "coluna" ? `2px solid ${texto}` : undefined,
+          opacity: casca === "coluna" ? 0.5 : 1,
+        }}
+      />
+    </span>
+  );
+}
+
+function CartaoEstilo({ tema, onChange }) {
+  const { usuario } = useAuth();
+  const plano = usuario?.plano || "free";
+  const atual = tema.estilo || "";
+
+  return (
+    <>
+      <CartaoAjuste titulo="Estilo da página" resumo={ESTILOS.find((item) => item.id === atual)?.nome || "Personalizado"} abertoPadrao>
+        <div className="grid grid-cols-2 gap-2">
+          {ESTILOS.map((preset) => {
+            const liberado = planoPermite(plano, preset.plano);
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                disabled={!liberado}
+                title={liberado ? preset.descricao : `Disponível no plano ${ROTULO_PLANO[preset.plano]}`}
+                onClick={() => onChange(aplicarEstilo(tema, preset.id))}
+                className={`rounded-xl p-1.5 text-left ring-1 transition ${
+                  atual === preset.id ? "ring-2 ring-accent" : "ring-line hover:ring-ink/30"
+                } ${liberado ? "" : "cursor-not-allowed opacity-50"}`}
+              >
+                <MiniEstilo preset={preset} />
+                <span className="mt-1.5 flex items-center justify-between gap-1">
+                  <span className="truncate text-xs">{preset.nome}</span>
+                  {preset.plano !== "free" && (
+                    <span className="shrink-0 rounded bg-ink px-1 text-[10px] uppercase text-paper">{ROTULO_PLANO[preset.plano]}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CartaoAjuste>
+      <CartaoAjuste titulo="Casca e acabamento" abertoPadrao={false}>
+        <Campo label="Container">
+          <Pills wrap valor={tema.casca || "coluna"} opcoes={CASCAS} onChange={(casca) => onChange({ ...tema, casca })} />
+        </Campo>
+        <Campo label="Textura do fundo">
+          <Pills wrap valor={tema.textura || "nenhuma"} opcoes={TEXTURAS} onChange={(textura) => onChange({ ...tema, textura })} />
+        </Campo>
+        <Campo label="Formato dos botões">
+          <Pills wrap valor={tema.botao || "pilula"} opcoes={FORMAS_BOTAO} onChange={(botao) => onChange({ ...tema, botao })} />
+        </Campo>
+        <Campo label="Formato dos ícones">
+          <Pills wrap valor={tema.iconeForma || "simples"} opcoes={FORMAS_ICONE} onChange={(iconeForma) => onChange({ ...tema, iconeForma })} />
+        </Campo>
+        <Campo label="Títulos">
+          <Pills wrap valor={tema.tituloForma || "pesado"} opcoes={FORMAS_TITULO} onChange={(tituloForma) => onChange({ ...tema, tituloForma })} />
+        </Campo>
+      </CartaoAjuste>
+    </>
+  );
+}
+
+export function ThemeInspector({ tema, onChange, onEscolherImagem, extras, escopo = "tudo", titulo, onTitulo }) {
+  const mostraFundo = escopo !== "pagina";
+  const mostraPagina = escopo !== "fundo";
   return (
     <div className="space-y-2">
-      {extras}
-      <CartaoAjuste titulo="Fundo da página" resumo="Cor, degradê, imagem ou transparente">
-        <CampoFundo
-          fonte={tema}
-          corKey="fundo"
-          fallbackCor="#0b0b10"
-          onChange={(patch) => onChange({ ...tema, ...patch })}
-          onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, null, "temaFundo") : undefined}
-        />
-      </CartaoAjuste>
-      <CartaoAjuste titulo="Texto e destaque" abertoPadrao={false}>
-        <Campo label="Texto"><input type="color" className="h-10 w-full" value={tema.texto} onChange={(e) => onChange({ ...tema, texto: e.target.value })} /></Campo>
-        <Campo label="Destaque"><input type="color" className="h-10 w-full" value={tema.destaque} onChange={(e) => onChange({ ...tema, destaque: e.target.value })} /></Campo>
-        <Campo label="Fonte">
-          <select className={inputClass} value={tema.fonte || "sans"} onChange={(e) => onChange({ ...tema, fonte: e.target.value })}>
-            {FONTES_OPCOES.map((fonte) => (
-              <option key={fonte.id} value={fonte.id}>{fonte.nome}</option>
-            ))}
-          </select>
-        </Campo>
-      </CartaoAjuste>
-      <CartaoAjuste titulo="Layout" abertoPadrao={false}>
-        <Campo label="Alinhamento">
-          <Pills
-            wrap
-            valor={tema.alinhamento || "centro"}
-            opcoes={ALINHAMENTOS_TEMA}
-            onChange={(alinhamento) => onChange({ ...tema, alinhamento })}
+      {mostraPagina && <CartaoEstilo tema={tema} onChange={onChange} />}
+      {mostraPagina && onTitulo ? (
+        <CartaoAjuste titulo="Nome da página" resumo={titulo}>
+          <Campo label="Título">
+            <input className={inputClass} value={titulo || ""} onChange={(e) => onTitulo(e.target.value)} />
+          </Campo>
+        </CartaoAjuste>
+      ) : null}
+      {mostraPagina ? extras : null}
+      {mostraFundo && (
+        <CartaoAjuste titulo="Fundo" resumo="Cor, degradê, imagem ou transparente">
+          <CampoFundo
+            fonte={tema}
+            corKey="fundo"
+            fallbackCor="#0b0b10"
+            onChange={(patch) => onChange({ ...tema, ...patch })}
+            onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, null, "temaFundo") : undefined}
           />
-        </Campo>
-        <Campo label="Orientação do texto">
-          <Pills
-            valor={tema.orientacao || "horizontal"}
-            opcoes={ORIENTACOES_TEXTO}
-            onChange={(orientacao) => onChange({ ...tema, orientacao })}
-          />
-        </Campo>
-        <Campo label="Largura">
-          <Pills
-            wrap
-            valor={tema.largura || "media"}
-            opcoes={[
-              { id: "estreita", nome: "Estreita" },
-              { id: "media", nome: "Média" },
-              { id: "larga", nome: "Larga" },
-              { id: "completa", nome: "Completa" },
-            ]}
-            onChange={(largura) => onChange({ ...tema, largura })}
-          />
-        </Campo>
-      </CartaoAjuste>
+        </CartaoAjuste>
+      )}
+      {mostraPagina && (
+        <>
+          <CartaoAjuste titulo="Texto e destaque" abertoPadrao={escopo === "pagina"}>
+            <Campo label="Texto"><input type="color" className="h-10 w-full" value={tema.texto} onChange={(e) => onChange({ ...tema, texto: e.target.value })} /></Campo>
+            <Campo label="Destaque"><input type="color" className="h-10 w-full" value={tema.destaque} onChange={(e) => onChange({ ...tema, destaque: e.target.value })} /></Campo>
+            <Campo label="Fonte">
+              <select className={inputClass} value={tema.fonte || "sans"} onChange={(e) => onChange({ ...tema, fonte: e.target.value })}>
+                {FONTES_OPCOES.map((fonte) => (
+                  <option key={fonte.id} value={fonte.id}>{fonte.nome}</option>
+                ))}
+              </select>
+            </Campo>
+          </CartaoAjuste>
+          <CartaoAjuste titulo="Layout" abertoPadrao={escopo === "pagina"}>
+            <Campo label="Alinhamento">
+              <Pills
+                wrap
+                valor={tema.alinhamento || "centro"}
+                opcoes={ALINHAMENTOS_TEMA}
+                onChange={(alinhamento) => onChange({ ...tema, alinhamento })}
+              />
+            </Campo>
+            <Campo label="Orientação do texto">
+              <Pills
+                valor={tema.orientacao || "horizontal"}
+                opcoes={ORIENTACOES_TEXTO}
+                onChange={(orientacao) => onChange({ ...tema, orientacao })}
+              />
+            </Campo>
+            <Campo label="Largura">
+              <Pills
+                wrap
+                valor={tema.largura || "media"}
+                opcoes={[
+                  { id: "estreita", nome: "Estreita" },
+                  { id: "media", nome: "Média" },
+                  { id: "larga", nome: "Larga" },
+                  { id: "completa", nome: "Completa" },
+                ]}
+                onChange={(largura) => onChange({ ...tema, largura })}
+              />
+            </Campo>
+          </CartaoAjuste>
+        </>
+      )}
     </div>
   );
 }
