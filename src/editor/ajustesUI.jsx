@@ -1,9 +1,72 @@
 import { useState } from "react";
 import { ChevronDown, ChevronLeft } from "lucide-react";
 import { DEGRADES_PRONTOS, modoFundo } from "./fundo";
-import { ALIGN_BLOCO, DIRECOES_FLEX, DISPLAYS_BLOCO, JUSTIFY_BLOCO, OBJECT_FIT, RAIOS_BLOCO } from "./aparencia";
+import { ALIGN_BLOCO, JUSTIFY_BLOCO, OBJECT_FIT, RAIOS_BLOCO } from "./aparencia";
+import { DicaAtributo, DicaCaixa, metaAtributo } from "./dicasLayout";
 
 export const inputClass = "w-full rounded-xl border border-line bg-paper-2 px-3 py-2 text-sm text-ink outline-none focus:border-accent";
+
+const memoriaFacetas = new Map();
+
+/**
+ * Navegação por intenção: mostra uma fatia de ajustes por vez.
+ * Evita o “tudo aberto” que mistura fundo, tipografia, layout e espaço.
+ */
+export function PainelFacetas({ id, facetas, padrao, children }) {
+  const lista = facetas.filter(Boolean);
+  const inicial = () => {
+    const guardado = id ? memoriaFacetas.get(id) : null;
+    if (guardado && lista.some((item) => item.id === guardado)) return guardado;
+    if (padrao && lista.some((item) => item.id === padrao)) return padrao;
+    return lista[0]?.id || "";
+  };
+  const [ativa, setAtiva] = useState(inicial);
+  const atual = lista.some((item) => item.id === ativa) ? ativa : lista[0]?.id;
+  const meta = lista.find((item) => item.id === atual);
+
+  const escolher = (idFaceta) => {
+    setAtiva(idFaceta);
+    if (id) memoriaFacetas.set(id, idFaceta);
+  };
+
+  if (!lista.length) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="editor-facetas" role="tablist" aria-label="Tipo de ajuste">
+        {lista.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={atual === item.id}
+            data-ativa={atual === item.id ? "true" : undefined}
+            className="editor-faceta"
+            title={item.dica}
+            onClick={() => escolher(item.id)}
+          >
+            {item.nome}
+          </button>
+        ))}
+      </div>
+      {meta?.dica ? (
+        <p className="editor-guia-faceta">{meta.dica}</p>
+      ) : null}
+      <div className="editor-faceta-corpo" role="tabpanel">
+        {typeof children === "function" ? children(atual) : children}
+      </div>
+    </div>
+  );
+}
+
+/** Bloco de conteúdo de uma faceta — fundo claro, tipografia estável. */
+export function CorpoFaceta({ children, className = "" }) {
+  return (
+    <div className={`space-y-3 rounded-2xl border border-line bg-paper-2 px-3 py-3 text-ink ${className}`}>
+      {children}
+    </div>
+  );
+}
 
 export function Pills({ valor, opcoes, onChange, className = "", wrap = false }) {
   return (
@@ -29,13 +92,27 @@ export function Pills({ valor, opcoes, onChange, className = "", wrap = false })
   );
 }
 
-export function Campo({ label, dica, children }) {
+export function Campo({ label, dica, desenho, children }) {
   return (
     <div className="block space-y-1.5">
-      <span className="ui-dica block text-xs uppercase tracking-[0.16em]">{label}</span>
-      {dica ? <span className="ui-dica block text-[11px] leading-4">{dica}</span> : null}
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1">
+          <span className="ui-dica block text-xs uppercase tracking-[0.16em]">{label}</span>
+          {dica ? <span className="ui-dica mt-0.5 block text-[11px] leading-4">{dica}</span> : null}
+        </span>
+        {desenho ? <span className="shrink-0">{desenho}</span> : null}
+      </div>
       {children}
     </div>
+  );
+}
+
+export function CampoComDica({ tipo, valor, children }) {
+  const meta = metaAtributo(tipo, valor);
+  return (
+    <Campo label={meta.label} dica={meta.dica} desenho={<DicaAtributo tipo={tipo} valor={valor} />}>
+      {children}
+    </Campo>
   );
 }
 
@@ -166,28 +243,40 @@ export function CampoArquivo({ label, previewUrl, onArquivo }) {
 }
 
 export function CamposEspaco({ props, onChange }) {
-  const slider = (label, chave, min, max, vazio) => (
-    <Campo label={label}>
-      <div className="flex items-center gap-2">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={props[chave] === "" || props[chave] == null ? vazio : props[chave]}
-          onChange={(e) => onChange({ [chave]: Number(e.target.value) })}
-          className="w-full"
-        />
-        <span className="w-10 text-right text-xs text-muted">{props[chave] === "" || props[chave] == null ? "auto" : `${props[chave]}`}</span>
-      </div>
-    </Campo>
-  );
+  const [zona, setZona] = useState("conteudo");
+  const slider = (tipo, chave, min, max, vazio) => {
+    const atual = props[chave] === "" || props[chave] == null ? vazio : props[chave];
+    return (
+      <CampoComDica tipo={tipo} valor={atual}>
+        <div
+          className="flex items-center gap-2"
+          onPointerEnter={() => setZona(chave)}
+          onFocusCapture={() => setZona(chave)}
+        >
+          <input
+            type="range"
+            min={min}
+            max={max}
+            value={atual}
+            onChange={(e) => onChange({ [chave]: Number(e.target.value) })}
+            className="w-full"
+          />
+          <span className="w-10 text-right text-xs text-muted">{props[chave] === "" || props[chave] == null ? "auto" : `${props[chave]}`}</span>
+        </div>
+      </CampoComDica>
+    );
+  };
   return (
     <div className="space-y-3">
-      {slider("Margem de cima", "margemCima", 0, 96, 0)}
-      {slider("Margem de baixo", "margemBaixo", 0, 96, 0)}
-      {slider("Padding de cima", "paddingCima", 0, 80, 24)}
-      {slider("Padding de baixo", "paddingBaixo", 0, 80, 24)}
-      {slider("Padding das laterais", "paddingLados", 0, 64, 20)}
+      <DicaCaixa zona={zona} props={props} />
+      <p className="ui-dica text-[11px] leading-4">
+        Laranja é margem: empurra o que está fora. Azul é padding: abre folga por dentro.
+      </p>
+      {slider("margemCima", "margemCima", 0, 96, 0)}
+      {slider("margemBaixo", "margemBaixo", 0, 96, 0)}
+      {slider("paddingCima", "paddingCima", 0, 80, 24)}
+      {slider("paddingBaixo", "paddingBaixo", 0, 80, 24)}
+      {slider("paddingLados", "paddingLados", 0, 64, 20)}
       <button
         type="button"
         className="text-xs text-muted hover:text-ink"
@@ -205,187 +294,260 @@ export function CamposEspaco({ props, onChange }) {
   );
 }
 
-function ativarCaixaFlex(props, extras) {
-  if (props.display === "flex" || props.display === "grid") return extras;
-  return {
-    display: "flex",
-    flexDirecao: props.flexDirecao || "row",
-    flexQuebra: props.flexQuebra || "wrap",
-    gap: definidoNumero(props.gap) ? props.gap : 16,
-    ...extras,
-  };
+const ORGANIZACOES = [
+  { id: "", nome: "Modelo" },
+  { id: "block", nome: "Pilha" },
+  { id: "flex", nome: "Fileira" },
+  { id: "grid", nome: "Grade" },
+];
+
+const DIRECOES = [
+  { id: "row", nome: "Lado a lado" },
+  { id: "column", nome: "Empilhado" },
+];
+
+function definidoNumero(valor) {
+  return valor !== "" && valor != null;
 }
 
-export function CamposLayout({ props, onChange, midia = false }) {
+/** Só a organização das peças — sem cantos, altura ou mídia. */
+export function CamposArranjo({ props, onChange, escopo = "bloco" }) {
   const display = props.display || "";
+  const usaFlex = display === "flex" || (!display && (props.justify || props.align || props.flexDirecao));
+  const usaGrade = display === "grid";
+  const mostraOrganizacao = escopo === "bloco" || display || props.justify || props.align || props.flexDirecao;
+  const mostraPosicao = escopo === "parte" || props.alignSelf;
+
+  const limparOrganizacao = {
+    flexDirecao: "",
+    flexQuebra: "",
+    justify: "",
+    align: "",
+    gap: "",
+    colunasGrade: "",
+  };
+
   return (
     <div className="space-y-3">
-      <Campo label="Display" dica="Como o conteúdo se organiza neste item.">
-        <Pills
-          valor={display}
-          opcoes={DISPLAYS_BLOCO}
-          onChange={(valor) => onChange({
-            display: valor,
-            ...(valor === "flex" ? {
-              flexDirecao: props.flexDirecao || "row",
-              flexQuebra: props.flexQuebra || "wrap",
-              justify: props.justify || "center",
-              align: props.align || "center",
-              gap: definidoNumero(props.gap) ? props.gap : 16,
-            } : {}),
-            ...(valor === "grid" ? {
-              colunasGrade: props.colunasGrade || 2,
-              justify: props.justify || "center",
-              align: props.align || "center",
-              gap: definidoNumero(props.gap) ? props.gap : 16,
-            } : {}),
-          })}
-        />
-      </Campo>
-      <Campo label="Justify content" dica="Eixo principal: início, centro, fim ou espaço entre os itens.">
-        <Pills
-          wrap
-          valor={props.justify || ""}
-          opcoes={[{ id: "", nome: "Auto" }, ...JUSTIFY_BLOCO]}
-          onChange={(justify) => onChange(justify || props.align ? ativarCaixaFlex(props, { justify }) : { justify })}
-        />
-      </Campo>
-      <Campo label="Align items" dica="Eixo cruzado: topo, centro, base ou esticar.">
-        <Pills
-          wrap
-          valor={props.align || ""}
-          opcoes={[{ id: "", nome: "Auto" }, ...ALIGN_BLOCO]}
-          onChange={(align) => onChange(align || props.justify ? ativarCaixaFlex(props, { align }) : { align })}
-        />
-      </Campo>
-      <Campo label="Align self" dica="Posição deste item dentro do bloco pai.">
-        <Pills
-          wrap
-          valor={props.alignSelf || ""}
-          opcoes={[{ id: "", nome: "Auto" }, ...ALIGN_BLOCO]}
-          onChange={(alignSelf) => onChange({ alignSelf })}
-        />
-      </Campo>
-      {display === "flex" && (
+      {mostraOrganizacao && (
+        <CampoComDica tipo="display" valor={display}>
+          <Pills
+            wrap
+            valor={display}
+            opcoes={ORGANIZACOES}
+            onChange={(valor) => onChange({
+              display: valor,
+              ...(valor === "flex" ? {
+                ...limparOrganizacao,
+                flexDirecao: props.flexDirecao || "row",
+                flexQuebra: props.flexQuebra || "wrap",
+                justify: props.justify || "center",
+                align: props.align || "center",
+                gap: definidoNumero(props.gap) ? props.gap : 16,
+              } : {}),
+              ...(valor === "grid" ? {
+                ...limparOrganizacao,
+                colunasGrade: props.colunasGrade || 2,
+                justify: props.justify || "center",
+                align: props.align || "center",
+                gap: definidoNumero(props.gap) ? props.gap : 16,
+              } : {}),
+              ...(valor === "" || valor === "block" ? limparOrganizacao : {}),
+            })}
+          />
+        </CampoComDica>
+      )}
+
+      {usaFlex && (
         <>
-          <Campo label="Direção">
-            <Pills valor={props.flexDirecao || "row"} opcoes={DIRECOES_FLEX} onChange={(flexDirecao) => onChange({ flexDirecao })} />
-          </Campo>
-          <Campo label="Quebra">
+          <CampoComDica tipo="flexDirecao" valor={props.flexDirecao || "row"}>
+            <Pills wrap valor={props.flexDirecao || "row"} opcoes={DIRECOES} onChange={(flexDirecao) => onChange({ flexDirecao })} />
+          </CampoComDica>
+          <CampoComDica tipo="flexQuebra" valor={props.flexQuebra || "wrap"}>
             <Pills
               valor={props.flexQuebra || "wrap"}
-              opcoes={[{ id: "nowrap", nome: "Não" }, { id: "wrap", nome: "Sim" }]}
+              opcoes={[{ id: "wrap", nome: "Desce" }, { id: "nowrap", nome: "Aperta" }]}
               onChange={(flexQuebra) => onChange({ flexQuebra })}
             />
-          </Campo>
+          </CampoComDica>
         </>
       )}
-      {display === "grid" && (
-        <Campo label="Colunas da grade">
+
+      {usaGrade && (
+        <CampoComDica tipo="colunasGrade" valor={props.colunasGrade || 2}>
           <Pills
             valor={String(props.colunasGrade || 2)}
             opcoes={[{ id: "1", nome: "1" }, { id: "2", nome: "2" }, { id: "3", nome: "3" }, { id: "4", nome: "4" }]}
             onChange={(valor) => onChange({ colunasGrade: Number(valor) })}
           />
-        </Campo>
+        </CampoComDica>
       )}
-      {(display === "flex" || display === "grid") && (
-        <Campo label="Espaço entre itens">
-          <input type="range" min="0" max="64" value={props.gap ?? 16} onChange={(e) => onChange({ gap: Number(e.target.value) })} className="w-full" />
-        </Campo>
+
+      {(usaFlex || usaGrade) && (
+        <>
+          <CampoComDica tipo="justify" valor={props.justify || "center"}>
+            <Pills
+              wrap
+              valor={props.justify || "center"}
+              opcoes={JUSTIFY_BLOCO}
+              onChange={(justify) => onChange({ justify })}
+            />
+          </CampoComDica>
+          <CampoComDica tipo="align" valor={props.align || "center"}>
+            <Pills
+              wrap
+              valor={props.align || "center"}
+              opcoes={ALIGN_BLOCO}
+              onChange={(align) => onChange({ align })}
+            />
+          </CampoComDica>
+          <CampoComDica tipo="gap" valor={props.gap ?? 16}>
+            <div className="flex items-center gap-2">
+              <input type="range" min="0" max="64" value={props.gap ?? 16} onChange={(e) => onChange({ gap: Number(e.target.value) })} className="w-full" />
+              <span className="w-10 text-right text-xs text-muted">{props.gap ?? 16}</span>
+            </div>
+          </CampoComDica>
+        </>
       )}
-      <Campo label="Cantos" dica="Arredondamento deste item.">
+
+      {mostraPosicao && (
+        <CampoComDica tipo="alignSelf" valor={props.alignSelf || ""}>
+          <Pills
+            wrap
+            valor={props.alignSelf || ""}
+            opcoes={[{ id: "", nome: "Junto" }, ...ALIGN_BLOCO]}
+            onChange={(alignSelf) => onChange({ alignSelf })}
+          />
+        </CampoComDica>
+      )}
+
+      {!mostraOrganizacao && !mostraPosicao ? (
+        <p className="ui-dica text-[11px] leading-4">
+          Neste item não há peças internas para rearranjar. Use Forma ou Espaço.
+        </p>
+      ) : null}
+
+      {(mostraOrganizacao || mostraPosicao) && (
+        <button
+          type="button"
+          className="text-xs text-muted hover:text-ink"
+          onClick={() => onChange({
+            display: "",
+            flexDirecao: "",
+            flexQuebra: "",
+            justify: "",
+            align: "",
+            alignSelf: "",
+            gap: "",
+            colunasGrade: "",
+          })}
+        >
+          Voltar ao arranjo padrão
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Cantos, altura mínima e encaixe de mídia — a “caixa”, não a organização. */
+export function CamposForma({ props, onChange, midia = false }) {
+  return (
+    <div className="space-y-3">
+      <CampoComDica tipo="raio" valor={props.raio}>
         <Pills
           wrap
           valor={props.raio === "" || props.raio == null ? "" : String(props.raio)}
           opcoes={RAIOS_BLOCO}
           onChange={(valor) => onChange({ raio: valor === "" ? "" : Number(valor) })}
         />
-      </Campo>
-      {definidoNumero(props.raio) && !RAIOS_BLOCO.some((item) => item.id !== "" && Number(item.id) === Number(props.raio)) && (
-        <p className="text-[11px] text-muted">{props.raio}px</p>
-      )}
-      <Campo label="Ajuste fino do raio">
-        <input type="range" min="0" max="48" value={props.raio === "" || props.raio == null ? 16 : Math.min(48, Number(props.raio))} onChange={(e) => onChange({ raio: Number(e.target.value) })} className="w-full" />
-      </Campo>
-      <Campo label="Altura mínima">
+        <input
+          type="range"
+          min="0"
+          max="48"
+          value={props.raio === "" || props.raio == null ? 16 : Math.min(48, Number(props.raio))}
+          onChange={(e) => onChange({ raio: Number(e.target.value) })}
+          className="mt-2 w-full"
+        />
+      </CampoComDica>
+
+      <CampoComDica tipo="minAltura" valor={props.minAltura}>
         <div className="flex items-center gap-2">
           <input type="range" min="0" max="720" value={props.minAltura === "" || props.minAltura == null ? 0 : props.minAltura} onChange={(e) => onChange({ minAltura: Number(e.target.value) })} className="w-full" />
           <span className="w-12 text-right text-xs text-muted">{props.minAltura === "" || props.minAltura == null ? "auto" : `${props.minAltura}`}</span>
         </div>
-      </Campo>
-      <Campo label="Overflow">
-        <Pills
-          valor={props.overflow || ""}
-          opcoes={[{ id: "", nome: "Visível" }, { id: "hidden", nome: "Cortar" }]}
-          onChange={(overflow) => onChange({ overflow })}
-        />
-      </Campo>
+      </CampoComDica>
+
       {midia && (
         <>
-          <Campo label="Largura da foto" dica="Só vale para fotos deste bloco.">
+          <CampoComDica tipo="itemLargura" valor={props.itemLargura}>
             <div className="flex items-center gap-2">
               <input type="range" min="80" max="720" value={props.itemLargura === "" || props.itemLargura == null ? 720 : props.itemLargura} onChange={(e) => onChange({ itemLargura: Number(e.target.value) })} className="w-full" />
               <span className="w-12 text-right text-xs text-muted">{props.itemLargura === "" || props.itemLargura == null ? "auto" : `${props.itemLargura}`}</span>
             </div>
-          </Campo>
-          <Campo label="Encaixe da imagem" dica="Como a foto preenche o espaço.">
+          </CampoComDica>
+          <CampoComDica tipo="objectFit" valor={props.objectFit || "cover"}>
             <Pills valor={props.objectFit || "cover"} opcoes={OBJECT_FIT} onChange={(objectFit) => onChange({ objectFit })} />
-          </Campo>
+          </CampoComDica>
         </>
       )}
+
       <button
         type="button"
         className="text-xs text-muted hover:text-ink"
         onClick={() => onChange({
-          display: "",
-          flexDirecao: "",
-          flexQuebra: "",
-          justify: "",
-          align: "",
-          alignSelf: "",
-          gap: "",
-          colunasGrade: "",
           raio: "",
           minAltura: "",
-          overflow: "",
           ...(midia ? { itemLargura: "", objectFit: "" } : {}),
         })}
       >
-        Voltar ao layout padrão
+        Voltar à forma padrão
       </button>
     </div>
   );
 }
 
-const acordeaoCaixa = new Map();
-
-/** Fundo, layout e padding do item selecionado — não do bloco. */
-export function CartoesCaixa({ idAcordeao, fonte = {}, onChange, layout = {}, onArquivo, fallbackCor = "#ffffff" }) {
-  const [abertos, setAbertos] = useState(() => acordeaoCaixa.get(idAcordeao) || {
-    fundo: false,
-    layout: true,
-    espaco: false,
-  });
-  const setChave = (chave, valor) => {
-    setAbertos((atual) => {
-      const proximo = { ...atual, [chave]: valor };
-      if (idAcordeao) acordeaoCaixa.set(idAcordeao, proximo);
-      return proximo;
-    });
-  };
+/** Compat: arranjo + forma juntos (preferir as facetas). */
+export function CamposLayout({ props, onChange, midia = false, escopo = "bloco" }) {
   return (
-    <>
-      <CartaoAjuste titulo="Fundo" resumo="Cor, degradê ou imagem deste item" aberto={abertos.fundo} onAberto={(valor) => setChave("fundo", valor)}>
-        <CampoFundo fonte={fonte} fallbackCor={fallbackCor} onChange={onChange} onArquivo={onArquivo} />
-      </CartaoAjuste>
-      <CartaoAjuste titulo={layout.titulo || "Layout e cantos"} aberto={abertos.layout} onAberto={(valor) => setChave("layout", valor)}>
-        <CamposLayout props={fonte} onChange={onChange} midia={layout.midia} />
-      </CartaoAjuste>
-      <CartaoAjuste titulo="Margem e padding" aberto={abertos.espaco} onAberto={(valor) => setChave("espaco", valor)}>
-        <CamposEspaco props={fonte} onChange={onChange} />
-      </CartaoAjuste>
-    </>
+    <div className="space-y-4">
+      <CamposArranjo props={props} onChange={onChange} escopo={escopo} />
+      <div className="border-t border-line pt-3">
+        <CamposForma props={props} onChange={onChange} midia={midia} />
+      </div>
+    </div>
+  );
+}
+
+/** Fundo, arranjo, forma e espaço do item — um grupo por vez. */
+export function CartoesCaixa({ idAcordeao, fonte = {}, onChange, layout = {}, onArquivo, fallbackCor = "#ffffff", tipografia = null }) {
+  const facetas = [
+    tipografia ? { id: "texto", nome: "Texto", dica: "Fonte, peso e alinhamento só deste item." } : null,
+    { id: "visual", nome: "Visual", dica: "Cor, degradê ou imagem atrás deste item." },
+    { id: "arranjo", nome: "Posição", dica: "Onde este item se encaixa em relação aos vizinhos." },
+    { id: "forma", nome: "Forma", dica: layout.resumo || "Cantos, altura e encaixe só do que você clicou." },
+    { id: "espaco", nome: "Espaço", dica: "Margem empurra o que está fora · padding abre folga por dentro." },
+  ];
+
+  return (
+    <PainelFacetas key={idAcordeao || "caixa"} id={idAcordeao || "caixa"} facetas={facetas} padrao={tipografia ? "texto" : "forma"}>
+      {(faceta) => (
+        <CorpoFaceta>
+          {faceta === "texto" && tipografia}
+          {faceta === "visual" && (
+            <CampoFundo fonte={fonte} fallbackCor={fallbackCor} onChange={onChange} onArquivo={onArquivo} />
+          )}
+          {faceta === "arranjo" && (
+            <CamposArranjo props={fonte} onChange={onChange} escopo="parte" />
+          )}
+          {faceta === "forma" && (
+            <CamposForma props={fonte} onChange={onChange} midia={layout.midia} />
+          )}
+          {faceta === "espaco" && (
+            <CamposEspaco props={fonte} onChange={onChange} />
+          )}
+        </CorpoFaceta>
+      )}
+    </PainelFacetas>
   );
 }
 
@@ -394,17 +556,13 @@ export function perfilLayout(tipo) {
   switch (tipo) {
     case "imagem":
     case "galeria":
-      return { midia: true, titulo: "Layout e foto" };
+      return { midia: true, titulo: "Organizar e encaixar a foto", resumo: "Como as fotos se arrumam nesta seção" };
     case "cartoes":
     case "depoimentos":
-      return { midia: true, titulo: "Layout e cantos" };
+      return { midia: true, titulo: "Organizar o conteúdo", resumo: "Como os cards se encaixam" };
     default:
-      return { midia: false, titulo: "Layout e cantos" };
+      return { midia: false, titulo: "Organizar o conteúdo", resumo: "Como as peças desta seção se encaixam" };
   }
-}
-
-function definidoNumero(valor) {
-  return valor !== "" && valor != null;
 }
 
 export function CampoFundo({ fonte, corKey = "corFundo", fallbackCor = "#ffffff", onChange, onArquivo }) {

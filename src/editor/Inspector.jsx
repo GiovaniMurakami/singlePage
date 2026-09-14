@@ -1,7 +1,7 @@
 import { ESTILOS_BOTAO, TIPOS_CAMPO_FORM, TIPOS_PECA, blocoPadrao, campoFormularioPadrao, camposDoFormulario, nomeDoTipo } from "./templates";
 import { ALINHAMENTOS_BLOCO, TAMANHOS_BOTAO, TAMANHOS_TEXTO, TAMANHOS_TITULO } from "./aparencia";
 import { ALINHAMENTOS_TEMA, FONTES_OPCOES, ORIENTACOES_TEXTO } from "./fontes";
-import { CabecalhoAjuste, Campo, CampoArquivo, CampoCor, CampoFundo, CamposEspaco, CamposLayout, CartaoAjuste, CartoesCaixa, ListaPartes, Pills, inputClass, perfilLayout } from "./ajustesUI";
+import { CabecalhoAjuste, Campo, CampoArquivo, CampoComDica, CampoCor, CampoFundo, CamposArranjo, CamposEspaco, CamposForma, CartaoAjuste, CartoesCaixa, CorpoFaceta, ListaPartes, PainelFacetas, Pills, inputClass, perfilLayout } from "./ajustesUI";
 import { ListaIcones } from "./editorItens";
 import { aplicarCaixaNaParte, fonteCaixaDaParte, idParte, indiceDaParte, parteDoBloco, partesDoBloco } from "./partes";
 import { CartaoLayouts } from "./LayoutPickerModal";
@@ -33,18 +33,20 @@ function aplicarAcessorio(acessorio) {
   return { seta: false, icone: "", iconeDireita: "", iconeCaixa: "" };
 }
 
-function CartaoLayout({ bloco, set }) {
-  const perfil = perfilLayout(bloco.tipo);
-  return (
-    <CartaoAjuste titulo={perfil.titulo} abertoPadrao={false}>
-      <CamposLayout props={bloco.props} onChange={set} midia={perfil.midia} />
-    </CartaoAjuste>
-  );
-}
-
 function CartoesDoBloco({ children, bloco, tema, set, onEscolherImagem, titulo = true, corpo = true, fundo = true, destaque = false, corKey = "corFundo", aberto = true, modo = "tudo" }) {
   const conteudo = modo !== "aparencia";
   const aparencia = modo !== "conteudo";
+  const perfil = perfilLayout(bloco.tipo);
+  const temTexto = titulo || corpo;
+
+  const facetas = [
+    fundo ? { id: "visual", nome: "Visual", dica: "Cor, degradê ou imagem atrás desta seção." } : null,
+    temTexto || destaque ? { id: "texto", nome: "Texto", dica: "Tamanho, cor e alinhamento das palavras." } : null,
+    { id: "arranjo", nome: "Arranjo", dica: "Como as peças de dentro (foto, título, botão…) se organizam." },
+    { id: "forma", nome: "Forma", dica: "Cantos, altura mínima e encaixe de imagem." },
+    { id: "espaco", nome: "Espaço", dica: "Margem empurra vizinhos · padding abre folga por dentro." },
+  ];
+
   return (
     <div className="space-y-2">
       {conteudo && (
@@ -55,65 +57,84 @@ function CartoesDoBloco({ children, bloco, tema, set, onEscolherImagem, titulo =
       {aparencia && (
         <>
           <CartaoLayouts bloco={bloco} set={set} tema={tema} />
-          <CartaoAjuste titulo="Fundo e texto" abertoPadrao>
-            <CamposAparencia props={bloco.props} tema={tema} onChange={set} onEscolherImagem={onEscolherImagem} bloco={bloco} titulo={titulo} corpo={corpo} fundo={fundo} destaque={destaque} corKey={corKey} />
-          </CartaoAjuste>
-          <CartaoLayout bloco={bloco} set={set} />
-          <CartaoAjuste titulo="Margem e padding" abertoPadrao={false}>
-            <CamposEspaco props={bloco.props} onChange={set} />
-          </CartaoAjuste>
+          <PainelFacetas key={`bloco:${bloco.id}`} id={`bloco:${bloco.id}`} facetas={facetas} padrao={fundo ? "visual" : temTexto ? "texto" : "arranjo"}>
+            {(faceta) => (
+              <CorpoFaceta>
+                {faceta === "visual" && fundo && (
+                  <CampoFundo
+                    fonte={bloco.props}
+                    corKey={corKey}
+                    fallbackCor={tema?.fundo || "#ffffff"}
+                    onChange={set}
+                    onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, "fundoImagem") : undefined}
+                  />
+                )}
+                {faceta === "texto" && (
+                  <CamposTextoAparencia
+                    props={bloco.props}
+                    tema={tema}
+                    onChange={set}
+                    titulo={titulo}
+                    corpo={corpo}
+                    destaque={destaque}
+                  />
+                )}
+                {faceta === "arranjo" && (
+                  <CamposArranjo props={bloco.props} onChange={set} escopo="bloco" />
+                )}
+                {faceta === "forma" && (
+                  <CamposForma props={bloco.props} onChange={set} midia={perfil.midia} />
+                )}
+                {faceta === "espaco" && (
+                  <CamposEspaco props={bloco.props} onChange={set} />
+                )}
+              </CorpoFaceta>
+            )}
+          </PainelFacetas>
         </>
       )}
     </div>
   );
 }
 
-function CamposAparencia({ props, tema, onChange, onEscolherImagem, bloco, titulo = true, corpo = true, fundo = true, destaque = false, corKey = "corFundo" }) {
+function CamposTextoAparencia({ props, tema, onChange, titulo = true, corpo = true, destaque = false }) {
   return (
     <>
-      {fundo && (
-        <CampoFundo
-          fonte={props}
-          corKey={corKey}
-          fallbackCor={tema?.fundo || "#ffffff"}
-          onChange={onChange}
-          onArquivo={onEscolherImagem && bloco ? (file) => onEscolherImagem(file, bloco, "fundoImagem") : undefined}
-        />
-      )}
       {titulo && (
         <>
-          <Campo label="Tamanho do título">
+          <CampoComDica tipo="tamanhoTitulo" valor={props.tamanhoTitulo || ""}>
             <select className={inputClass} value={props.tamanhoTitulo || ""} onChange={(e) => onChange({ tamanhoTitulo: e.target.value })}>
               {TAMANHOS_TITULO.map((item) => (
                 <option key={item.id} value={item.id}>{item.nome}</option>
               ))}
             </select>
-          </Campo>
+          </CampoComDica>
           <CampoCor label="Cor do título" value={props.corTitulo} fallback={tema?.texto || "#111111"} onChange={(corTitulo) => onChange({ corTitulo })} />
         </>
       )}
       {corpo && (
         <>
-          <Campo label="Tamanho do texto">
+          <CampoComDica tipo="tamanhoTexto" valor={props.tamanhoTexto || ""}>
             <select className={inputClass} value={props.tamanhoTexto || ""} onChange={(e) => onChange({ tamanhoTexto: e.target.value })}>
               {TAMANHOS_TEXTO.map((item) => (
                 <option key={item.id} value={item.id}>{item.nome}</option>
               ))}
             </select>
-          </Campo>
+          </CampoComDica>
           <CampoCor label="Cor do texto" value={props.corTexto} fallback={tema?.texto || "#111111"} onChange={(corTexto) => onChange({ corTexto })} />
         </>
       )}
       {destaque && (
         <CampoCor label="Destaque / botão" value={props.destaque} fallback={tema?.destaque || "#0071e3"} onChange={(destaqueProximo) => onChange({ destaque: destaqueProximo })} />
       )}
-      <Campo label="Alinhamento">
-        <select className={inputClass} value={props.alinhamento || ""} onChange={(e) => onChange({ alinhamento: e.target.value })}>
-          {ALINHAMENTOS_BLOCO.map((item) => (
-            <option key={item.id} value={item.id}>{item.nome}</option>
-          ))}
-        </select>
-      </Campo>
+      <CampoComDica tipo="alinhamento" valor={props.alinhamento || ""}>
+        <Pills
+          wrap
+          valor={props.alinhamento || ""}
+          opcoes={ALINHAMENTOS_BLOCO}
+          onChange={(alinhamento) => onChange({ alinhamento })}
+        />
+      </CampoComDica>
     </>
   );
 }
@@ -357,33 +378,33 @@ function CamposTexto({ props, tema, set, corpo = false, caixa, onCaixa }) {
     <>
       {corpo ? (
         <>
-          <Campo label="Tamanho da letra">
+          <CampoComDica tipo="tamanhoTexto" valor={props.tamanhoTexto || ""}>
             <select className={inputClass} value={props.tamanhoTexto || ""} onChange={(e) => set({ tamanhoTexto: e.target.value })}>
               {TAMANHOS_TEXTO.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
             </select>
-          </Campo>
+          </CampoComDica>
           <CampoCor label="Cor" value={props.corTexto} fallback={tema?.texto || "#111111"} onChange={(corTexto) => set({ corTexto })} />
         </>
       ) : (
         <>
-          <Campo label="Tamanho da letra">
+          <CampoComDica tipo="tamanhoTitulo" valor={props.tamanhoTitulo || ""}>
             <select className={inputClass} value={props.tamanhoTitulo || ""} onChange={(e) => set({ tamanhoTitulo: e.target.value })}>
               {TAMANHOS_TITULO.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
             </select>
-          </Campo>
+          </CampoComDica>
           <CampoCor label="Cor" value={props.corTitulo} fallback={tema?.texto || "#111111"} onChange={(corTitulo) => set({ corTitulo })} />
         </>
       )}
       {onCaixa && (
         <>
-          <Campo label="Alinhar texto" dica="À esquerda, no centro ou à direita.">
+          <CampoComDica tipo="alinhamento" valor={caixa?.alinhamento || ""}>
             <Pills
               wrap
               valor={caixa?.alinhamento || ""}
               opcoes={ALINHAMENTOS_BLOCO}
               onChange={(alinhamento) => onCaixa({ alinhamento })}
             />
-          </Campo>
+          </CampoComDica>
           <Campo label="Fonte">
             <select className={inputClass} value={caixa?.fonte || ""} onChange={(e) => onCaixa({ fonte: e.target.value })}>
               <option value="">Seguir o tema</option>
@@ -392,13 +413,13 @@ function CamposTexto({ props, tema, set, corpo = false, caixa, onCaixa }) {
               ))}
             </select>
           </Campo>
-          <Campo label="Orientação">
+          <CampoComDica tipo="orientacao" valor={caixa?.orientacao || ""}>
             <Pills
               valor={caixa?.orientacao || ""}
               opcoes={[{ id: "", nome: "Tema" }, ...ORIENTACOES_TEXTO]}
               onChange={(orientacao) => onCaixa({ orientacao })}
             />
-          </Campo>
+          </CampoComDica>
         </>
       )}
     </>
@@ -408,14 +429,14 @@ function CamposTexto({ props, tema, set, corpo = false, caixa, onCaixa }) {
 function CamposTipografia({ fonte = {}, onChange }) {
   return (
     <CartaoAjuste titulo="Alinhamento e fonte" resumo="Deste texto, não da página inteira" abertoPadrao>
-      <Campo label="Alinhamento">
+      <CampoComDica tipo="alinhamento" valor={fonte.alinhamento || ""}>
         <Pills
           wrap
           valor={fonte.alinhamento || ""}
           opcoes={ALINHAMENTOS_BLOCO}
           onChange={(alinhamento) => onChange({ alinhamento })}
         />
-      </Campo>
+      </CampoComDica>
       <Campo label="Fonte">
         <select className={inputClass} value={fonte.fonte || ""} onChange={(e) => onChange({ fonte: e.target.value })}>
           <option value="">Seguir o tema</option>
@@ -424,13 +445,13 @@ function CamposTipografia({ fonte = {}, onChange }) {
           ))}
         </select>
       </Campo>
-      <Campo label="Orientação">
+      <CampoComDica tipo="orientacao" valor={fonte.orientacao || ""}>
         <Pills
           valor={fonte.orientacao || ""}
           opcoes={[{ id: "", nome: "Tema" }, ...ORIENTACOES_TEXTO]}
           onChange={(orientacao) => onChange({ orientacao })}
         />
-      </Campo>
+      </CampoComDica>
     </CartaoAjuste>
   );
 }
@@ -446,10 +467,13 @@ function parteUsaCamposTexto(parte) {
 }
 
 function perfilCaixaDaParte(bloco, parte) {
-  const base = perfilLayout(bloco.tipo);
   const id = parte?.id || "";
   const midia = id === "imagem" || id === "foto" || (bloco.tipo === "galeria" && id.startsWith("item-"));
-  return { ...base, midia };
+  return {
+    midia,
+    titulo: midia ? "Esta foto" : "Este item",
+    resumo: midia ? "Tamanho, cantos e encaixe só desta imagem" : "Posição, cantos e tamanho só do que você clicou",
+  };
 }
 
 function botaoDaCapa(props) {
@@ -718,9 +742,6 @@ export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem, aba =
   if (aba === "aparencia") {
     return (
       <div className="space-y-2">
-        {parteTemTexto(parte) && !parteUsaCamposTexto(parte) && (
-          <CamposTipografia fonte={fonteCaixaDaParte(bloco, parte)} onChange={setCaixa} />
-        )}
         <CartoesCaixa
           idAcordeao={`${bloco.id}:${parte.id}`}
           fonte={fonteCaixaDaParte(bloco, parte)}
@@ -728,6 +749,11 @@ export function InspetorParte({ bloco, parte, tema, set, onEscolherImagem, aba =
           layout={perfilCaixaDaParte(bloco, parte)}
           fallbackCor={tema?.fundo || "#ffffff"}
           onArquivo={onEscolherImagem ? (file) => onEscolherImagem(file, bloco, `parteFundo:${parte.id}`) : undefined}
+          tipografia={
+            parteTemTexto(parte) && !parteUsaCamposTexto(parte)
+              ? <CamposTipografia fonte={fonteCaixaDaParte(bloco, parte)} onChange={setCaixa} />
+              : null
+          }
         />
       </div>
     );
@@ -1380,23 +1406,23 @@ export function ThemeInspector({ tema, onChange, onEscolherImagem, extras, escop
               </select>
             </Campo>
           </CartaoAjuste>
-          <CartaoAjuste titulo="Layout" abertoPadrao={escopo === "pagina"}>
-            <Campo label="Alinhamento">
+          <CartaoAjuste titulo="Largura e alinhamento" abertoPadrao={escopo === "pagina"} resumo="Como o conteúdo da página se acomoda">
+            <CampoComDica tipo="alinhamento" valor={tema.alinhamento || "centro"}>
               <Pills
                 wrap
                 valor={tema.alinhamento || "centro"}
                 opcoes={ALINHAMENTOS_TEMA}
                 onChange={(alinhamento) => onChange({ ...tema, alinhamento })}
               />
-            </Campo>
-            <Campo label="Orientação do texto">
+            </CampoComDica>
+            <CampoComDica tipo="orientacao" valor={tema.orientacao || "horizontal"}>
               <Pills
                 valor={tema.orientacao || "horizontal"}
                 opcoes={ORIENTACOES_TEXTO}
                 onChange={(orientacao) => onChange({ ...tema, orientacao })}
               />
-            </Campo>
-            <Campo label="Largura">
+            </CampoComDica>
+            <CampoComDica tipo="largura" valor={tema.largura || "media"}>
               <Pills
                 wrap
                 valor={tema.largura || "media"}
@@ -1408,7 +1434,7 @@ export function ThemeInspector({ tema, onChange, onEscolherImagem, extras, escop
                 ]}
                 onChange={(largura) => onChange({ ...tema, largura })}
               />
-            </Campo>
+            </CampoComDica>
           </CartaoAjuste>
         </>
       )}
