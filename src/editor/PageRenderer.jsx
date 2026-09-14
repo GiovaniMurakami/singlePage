@@ -402,7 +402,7 @@ function BotaoPagina({ item, tema, className = "" }) {
       href={item.url || "#"}
       target={item.novaAba ? "_blank" : undefined}
       rel={item.novaAba ? "noreferrer" : undefined}
-      className={`item-interativo inline-flex font-medium ${tamanho} ${visual.className} ${className} ${item.animacao ? classeAnimacaoIcone(item.animacao) : ""}`}
+      className={`item-interativo inline-flex max-w-full min-w-0 font-medium ${tamanho} ${visual.className} ${className} ${item.animacao ? classeAnimacaoIcone(item.animacao) : ""}`}
       style={{
         ...estilo,
         gap,
@@ -414,7 +414,7 @@ function BotaoPagina({ item, tema, className = "" }) {
         {item.icone && !item.iconeDireita ? (
           <IconeLucide nome={item.icone} size={item.iconeTamanho || 16} color="currentColor" strokeWidth={item.traco || 2} />
         ) : null}
-        <span className="min-w-0">
+        <span className="min-w-0 break-words">
           <span className={item.subtitulo ? "block text-sm font-semibold uppercase tracking-[0.04em]" : undefined}>{item.rotulo}</span>
           {item.subtitulo ? <span className="block text-xs font-normal opacity-70">{item.subtitulo}</span> : null}
         </span>
@@ -443,14 +443,15 @@ function fotoCapa({ props, onEscolherFoto, className = "", style }) {
   const raio = parteFoto.raio === "" || parteFoto.raio == null ? (props.fotoRaio ?? 999) : Number(parteFoto.raio);
   const caixa = estiloDaParte(props, "foto", style);
   const midia = {
-    width: larga ? (larguraCustom ? largura : "100%") : tamanho,
-    height: larga ? "auto" : tamanho,
+    width: larga ? (larguraCustom ? largura : "100%") : `min(100%, ${tamanho}px)`,
+    height: larga ? "auto" : undefined,
+    aspectRatio: larga ? undefined : "1 / 1",
     maxWidth: "100%",
     maxHeight: style?.maxHeight,
     borderRadius: raio,
     objectFit: parteFoto.objectFit || "cover",
     display: "block",
-    flexShrink: 0,
+    flexShrink: 1,
     minWidth: 0,
   };
   const conteudo = props.fotoUrl ? (
@@ -519,10 +520,10 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
   if (layoutId === "split" || layoutId === "split-direita") {
     const invertido = layoutId === "split-direita";
     return (
-      <section className="py-10 md:py-16" style={caixaDoBloco(props)}>
-        <div className={`grid items-center gap-8 md:grid-cols-2 ${invertido ? "md:[&>:first-child]:order-2" : ""}`}>
-          {marcar("foto", fotoCapa({ props, onEscolherFoto }))}
-          <div className="min-w-0 text-left">{textosCapa({ props, local, marcar, botaoClass: "mt-6" })}</div>
+      <section className="@container py-10 @md:py-16" style={caixaDoBloco(props)}>
+        <div className={`grid items-center gap-8 @[28rem]:grid-cols-2 ${invertido ? "@[28rem]:[&>:first-child]:order-2" : ""}`}>
+          {marcar("foto", fotoCapa({ props, onEscolherFoto, className: "w-full max-w-full" }))}
+          <div className="min-w-0 w-full text-left">{textosCapa({ props, local, marcar, botaoClass: "mt-6" })}</div>
         </div>
       </section>
     );
@@ -532,7 +533,7 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
     return (
       <section
         data-layout="fullbleed"
-        className="relative flex min-h-[20rem] items-end overflow-hidden py-10 md:min-h-[26rem] md:py-16"
+        className="relative flex min-h-[20rem] items-end overflow-hidden py-10 @md:min-h-[26rem] @md:py-16"
         style={{
           ...caixaDoBloco(props),
           ...(props.fotoUrl ? { backgroundImage: `url(${props.fotoUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
@@ -580,10 +581,10 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
 
   if (layoutId === "compacta") {
     return (
-      <section className="py-10" style={caixaDoBloco(props)}>
-        <div className="flex flex-wrap items-center gap-4 text-left">
-          {marcar("foto", fotoCapa({ props, onEscolherFoto }))}
-          <div className="min-w-0 flex-1">
+      <section className="@container py-10" style={caixaDoBloco(props)}>
+        <div className="layout-lado flex flex-col items-stretch gap-4 text-left @[20rem]:flex-row @[20rem]:flex-wrap @[20rem]:items-center">
+          {marcar("foto", fotoCapa({ props, onEscolherFoto, className: "layout-lado-fixo" }))}
+          <div className="layout-lado-texto min-w-0 w-full @[20rem]:min-w-[10rem] @[20rem]:flex-1">
             {marcar("titulo", (
               <h1 className={classeTitulo("capa", props.tamanhoTitulo || "medio")} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h1>
             ))}
@@ -594,7 +595,9 @@ function BlocoCapa({ props, tema, marcar = semMarca, onEscolherFoto }) {
             ))}
           </div>
           {props.cta && marcar("botao", (
-            <BotaoPagina tema={local} item={itemBotaoCapa(props, { tamanho: props.tamanhoBotao || "pequeno" })} />
+            <span className="layout-lado-extra w-full @[20rem]:w-auto">
+              <BotaoPagina tema={local} item={itemBotaoCapa(props, { tamanho: props.tamanhoBotao || "pequeno" })} />
+            </span>
           ))}
         </div>
       </section>
@@ -677,13 +680,13 @@ function BlocoBotoes({ props, tema, marcar = semMarca }) {
   const local = temaDoBloco(props, tema);
   const layoutId = layoutIdDoBloco("botoes", props);
   const classe = props.display
-    ? "py-6"
+    ? "@container py-6"
     : layoutId === "linha"
-      ? "flex flex-wrap justify-center gap-3 py-6"
+      ? "@container flex flex-wrap justify-center gap-3 py-6"
       : layoutId === "pills"
-        ? "flex flex-wrap justify-center gap-2 py-6"
+        ? "@container flex flex-wrap justify-center gap-2 py-6"
         : layoutId === "grade"
-          ? "grid gap-3 py-6 sm:grid-cols-2"
+          ? "@container grid gap-3 py-6 @sm:grid-cols-2"
           : "mx-auto flex max-w-md flex-col gap-3 py-6";
   const botaoClass = layoutId === "linha"
     ? "min-h-12 px-6"
@@ -732,7 +735,7 @@ function BlocoGaleria({ props, interativo, marcar = semMarca }) {
   let grade;
   if (custom) {
     grade = (
-      <div className="w-full py-8" style={caixaDoBloco(props)}>
+      <div className="@container w-full py-8" style={caixaDoBloco(props)}>
         {lista.map((url, index) => <div key={url ? url + index : `vazia-${index}`} className="contents">{item(url, index)}</div>)}
       </div>
     );
@@ -749,10 +752,10 @@ function BlocoGaleria({ props, interativo, marcar = semMarca }) {
   } else if (layoutId === "destaque") {
     const [primeira, ...resto] = lista;
     grade = (
-      <div className="grid gap-3 py-8" style={caixaDoBloco(props)}>
+      <div className="@container grid gap-3 py-8" style={caixaDoBloco(props)}>
         {item(primeira, 0, { aspecto: "aspect-[2/1]" })}
         {resto.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 @sm:grid-cols-3">
             {resto.map((url, index) => <div key={url ? url + index : `vazia-${index}`}>{item(url, index + 1)}</div>)}
           </div>
         )}
@@ -760,18 +763,18 @@ function BlocoGaleria({ props, interativo, marcar = semMarca }) {
     );
   } else if (layoutId === "mosaico") {
     grade = (
-      <div className="grid gap-3 py-8 sm:grid-cols-2" style={caixaDoBloco(props)}>
+      <div className="@container grid gap-3 py-8 @sm:grid-cols-2" style={caixaDoBloco(props)}>
         {lista.map((url, index) => (
-          <div key={url ? url + index : `vazia-${index}`} className={index === 0 ? "sm:col-span-2" : ""}>
+          <div key={url ? url + index : `vazia-${index}`} className={index === 0 ? "@sm:col-span-2" : ""}>
             {item(url, index, { aspecto: index === 0 ? "aspect-[2/1]" : "aspect-square" })}
           </div>
         ))}
       </div>
     );
   } else {
-    const colunas = layoutId === "grade-3" ? "sm:grid-cols-3" : "sm:grid-cols-2";
+    const colunas = layoutId === "grade-3" ? "@sm:grid-cols-3" : "@sm:grid-cols-2";
     grade = (
-      <div className={`grid w-full gap-3 py-8 ${colunas}`} style={caixaDoBloco(props)}>
+      <div className={`@container grid w-full gap-3 py-8 ${colunas}`} style={caixaDoBloco(props)}>
         {lista.map((url, index) => <div key={url ? url + index : `vazia-${index}`} className="contents">{item(url, index)}</div>)}
       </div>
     );
@@ -824,7 +827,7 @@ function BlocoDepoimentos({ props, marcar = semMarca }) {
   const classe = props.display
     ? "py-8"
     : layoutId === "grade"
-      ? "grid gap-4 py-8 sm:grid-cols-2"
+      ? "@container grid gap-4 py-8 @sm:grid-cols-2"
       : layoutId === "faixa"
         ? "flex gap-4 overflow-x-auto py-8"
         : "grid gap-4 py-8";
@@ -1002,8 +1005,8 @@ function BlocoNavegacao({ props, tema, marcar = semMarca }) {
   const noEditor = marcar !== semMarca;
   return (
     <nav
-      className={`flex gap-x-5 gap-y-2 overflow-x-auto px-4 py-3 text-sm backdrop-blur [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:justify-center md:overflow-visible ${
-        noEditor ? "relative z-0 rounded-xl" : "sticky top-0 z-10 -mx-4 mb-2 sm:-mx-6"
+      className={`flex gap-x-5 gap-y-2 overflow-x-auto px-4 py-3 text-sm backdrop-blur [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden @md:flex-wrap @md:justify-center @md:overflow-visible ${
+        noEditor ? "relative z-0 rounded-xl" : "sticky top-0 z-10 -mx-4 mb-2 @sm:-mx-6"
       }`}
       style={{ background: props.corFundo || `${local.fundo}cc`, color: props.corTexto || undefined }}
       aria-label="Menu da página"
@@ -1137,7 +1140,7 @@ function BlocoContador({ props, tema, marcar = semMarca }) {
       <div className="py-8" style={caixa}>
         {titulo}
         {marcar("relogio", (
-          <p className="mt-2 text-4xl font-semibold tabular-nums sm:text-6xl">
+          <p className="mt-2 text-4xl font-semibold tabular-nums @sm:text-6xl">
             {unidades.map((unidade, indice) => (
               <span key={unidade.chave}>
                 {indice ? <span className="opacity-40">:</span> : null}
@@ -1164,7 +1167,7 @@ function BlocoContador({ props, tema, marcar = semMarca }) {
                 borderRadius: raioCss(props, "1rem"),
               }}
             >
-              <p className="text-2xl font-semibold tabular-nums sm:text-4xl">{doisDigitos(unidade.valor)}</p>
+              <p className="text-2xl font-semibold tabular-nums @sm:text-4xl">{doisDigitos(unidade.valor)}</p>
               <p className="mt-1 text-[11px] uppercase tracking-[0.12em] opacity-60">{unidade.rotulo}</p>
             </div>
           ))}
@@ -1179,22 +1182,22 @@ function BlocoCartoes({ props, tema, marcar = semMarca }) {
   const layoutId = layoutIdDoBloco("cartoes", props);
   const colunas = props.colunas || 3;
   const custom = Boolean(props.display);
-  const grade = colunas === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : colunas === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3";
+  const grade = colunas === 4 ? "@sm:grid-cols-2 @lg:grid-cols-4" : colunas === 2 ? "@sm:grid-cols-2" : "@sm:grid-cols-2 @lg:grid-cols-3";
   const classe = custom
-    ? "py-8"
+    ? "@container py-8"
     : layoutId === "lista"
       ? "grid gap-4 py-8"
       : layoutId === "faixa"
         ? "flex gap-4 overflow-x-auto py-8"
         : layoutId === "destaque"
-          ? "grid gap-4 py-8"
-          : `grid gap-4 py-8 ${grade}`;
+          ? "@container grid gap-4 py-8"
+          : `@container grid gap-4 py-8 ${grade}`;
   return (
     <div className={classe} style={caixaDoBloco({ ...props, corFundo: undefined })}>
       {(props.itens || []).map((item, index) => (
         <div
           key={`${item.titulo}-${index}`}
-          className={layoutId === "faixa" ? "w-[min(80%,16rem)] shrink-0" : layoutId === "destaque" && index === 0 ? "sm:col-span-full" : "contents"}
+          className={layoutId === "faixa" ? "w-[min(80%,16rem)] shrink-0" : layoutId === "destaque" && index === 0 ? "@sm:col-span-full" : "contents"}
         >
           {marcar(`item-${index}`, (
             <article className="h-full border border-line px-5 py-5 text-left" style={estiloDoItem(item, { ...(props.corFundo ? { background: props.corFundo, color: props.corTexto || undefined } : undefined), ...estiloMidia(props, "1rem") })}>
@@ -1224,14 +1227,28 @@ function estiloGrade(props) {
   const template = colunas === 2
     ? proporcao === "esquerda" ? "1.4fr 1fr" : proporcao === "direita" ? "1fr 1.4fr" : "1fr 1fr"
     : `repeat(${colunas}, minmax(0, 1fr))`;
-  return { display: "grid", gap, "--grade-template": template };
+  return {
+    display: "grid",
+    gap,
+    "--grade-template": template,
+    "--grade-min": colunas >= 4 ? "11rem" : colunas >= 3 ? "12.5rem" : "15rem",
+    "--grade-cols": String(colunas),
+  };
 }
 
 function BlocoGrade({ props, tema, interativo, filhos }) {
+  const caixa = caixaDoBloco({ ...props, corFundo: props.corFundo });
+  // A grade estrutural manda no display — não deixa Fileira/Grade custom sobrescrever.
+  delete caixa.display;
+  delete caixa.flexDirection;
+  delete caixa.flexWrap;
+  delete caixa.gridTemplateColumns;
+  delete caixa["--caixa-dir"];
+  delete caixa["--caixa-cols"];
   return (
-    <div className="bloco-grade py-6" style={{ ...estiloGrade(props), ...caixaDoBloco({ ...props, corFundo: props.corFundo }) }}>
+    <div className="bloco-grade py-6" style={{ ...caixa, ...estiloGrade(props) }}>
       {filhos ?? (props.celulas || []).map((celula, index) => (
-        <div key={celula.id || index} className="min-w-0">
+        <div key={celula.id || index} className="@container min-w-0 max-w-full">
           {filhosPadrao(celula.blocos, tema, interativo)}
         </div>
       ))}
@@ -1250,7 +1267,7 @@ function BlocoFaixa({ props, tema, interativo, filhos, marcar = semMarca }) {
   const alinhamento = props.alinhamento || (layoutId === "esquerda" ? "esquerda" : "centro");
   const padding = layoutId === "cta" ? "py-20" : "py-12";
   return (
-    <section className={`-mx-4 my-6 px-4 sm:-mx-6 sm:px-6 ${padding}`} style={{ ...cssFundo(props, "fundo"), ...caixaDoBloco({ ...props, corFundo: undefined }), color: faixaTema.texto, textAlign: alinhamento === "esquerda" ? "left" : "center" }}>
+    <section className={`-mx-4 my-6 px-4 @sm:-mx-6 @sm:px-6 ${padding}`} style={{ ...cssFundo(props, "fundo"), ...caixaDoBloco({ ...props, corFundo: undefined }), color: faixaTema.texto, textAlign: alinhamento === "esquerda" ? "left" : "center" }}>
       {props.titulo && marcar("titulo", (
         <h2 className={classeTitulo("texto", props.tamanhoTitulo)} style={estiloDaParte(props, "titulo", props.corTitulo ? { color: props.corTitulo } : undefined)}>{props.titulo}</h2>
       ))}
@@ -1445,7 +1462,7 @@ function ItemCanvas({ bloco, tema, editor, faixaTema, slug }) {
         return (
           <div
             key={celula.id || indice}
-            className={`celula-editor min-w-0 ${celulaAtiva || sobreCelula ? "celula-editor-ativa" : ""}`}
+            className={`celula-editor @container min-w-0 ${celulaAtiva || sobreCelula ? "celula-editor-ativa" : ""}`}
             onClick={(evento) => {
               evento.stopPropagation();
               onSelect?.(celula.id);
@@ -1714,7 +1731,7 @@ export function PageRenderer({
   const casca = tema.casca || "coluna";
   const canvas = (
     <div
-      className={`pagina-skin ${compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-col" : "flex min-h-screen flex-col"}`}
+      className={`pagina-skin @container ${compacto ? "flex w-full flex-col" : onSelect ? "flex min-h-full w-full flex-col" : "flex min-h-screen flex-col"}`}
       data-pagina-canvas
       data-selecao={selecionadoId === ALVO_FUNDO ? "fundo" : undefined}
       data-casca={casca}
@@ -1746,7 +1763,7 @@ export function PageRenderer({
       <div
         data-pagina-caixa
         data-selecao={selecionadoId === ALVO_PAGINA ? "pagina" : undefined}
-        className={`mx-auto w-full px-4 py-8 sm:px-6 sm:py-10 ${mostrarAnuncios ? "pagina-conteudo-com-trilhos" : ""} ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`}
+        className={`mx-auto w-full px-4 py-8 @sm:px-6 @sm:py-10 ${mostrarAnuncios ? "pagina-conteudo-com-trilhos" : ""} ${onSelect && !blocos.length ? "flex min-h-[18rem] items-center justify-center" : ""}`}
         style={{ maxWidth: LARGURAS[tema.largura] || LARGURAS.media }}
         onClick={onSelect ? (evento) => {
           if (evento.target.closest(".bloco-editor, .parte-alvo, .ponto-insercao, .zona-vazia, .celula-editor, [data-editor-chrome]")) return;

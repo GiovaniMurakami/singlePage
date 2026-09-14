@@ -121,7 +121,6 @@ export function EditorShell({
   const plano = usuario?.plano || "free";
   const [painelModo, setPainelModo] = useState("propriedades");
   const [menuMais, setMenuMais] = useState(false);
-  const [largura, setLargura] = useState(() => (typeof window === "undefined" ? 1280 : window.innerWidth));
   const historicoRef = useRef([]);
   const futuroRef = useRef([]);
   const [historicoTick, setHistoricoTick] = useState(0);
@@ -135,7 +134,7 @@ export function EditorShell({
   const parte = parteDoBloco(bloco, parteId);
   const arvore = useMemo(() => listarArvore(pagina.blocos), [pagina.blocos]);
   const migalhas = useMemo(() => (ehAlvoEspecial(selecionadoId) ? [] : caminhoDoAlvo(pagina.blocos, alvoId)), [pagina.blocos, selecionadoId, alvoId]);
-  const celular = largura >= 1024 && visao === "celular";
+  const celular = visao === "celular";
 
   const aplicarSnapshot = (estado) => {
     onChange({ ...pagina, blocos: estado.blocos, tema: estado.tema, titulo: estado.titulo });
@@ -262,12 +261,6 @@ export function EditorShell({
   };
 
   useEffect(() => {
-    const onResize = () => setLargura(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
     const atalho = (evento) => {
       const foco = evento.target;
       const digitando = foco?.isContentEditable
@@ -336,7 +329,7 @@ export function EditorShell({
         {celular ? (
           <div className="mx-auto w-full max-w-[360px] p-3 sm:p-6">
             <div className="rounded-[2.4rem] p-[10px] ring-1 ring-black/10" style={cssFundo(pagina.tema || {})}>
-              <div className="preview-celular h-[min(680px,70dvh)] overflow-auto rounded-[1.9rem]">
+              <div className="preview-celular h-[min(680px,70dvh)] overflow-y-auto overflow-x-hidden rounded-[1.9rem]">
                 <PageRenderer
                   pagina={pagina}
                   selecionadoId={selecionadoId}

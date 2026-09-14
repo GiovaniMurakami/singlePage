@@ -35,10 +35,10 @@ export const ALINHAMENTOS_BLOCO = [
 ];
 
 const TITULO = {
-  pequeno: "text-xl font-semibold leading-snug sm:text-2xl",
-  medio: "text-2xl font-semibold leading-snug sm:text-3xl",
-  grande: "text-3xl font-semibold leading-tight sm:text-5xl md:text-6xl",
-  enorme: "text-4xl font-semibold leading-none sm:text-6xl md:text-7xl",
+  pequeno: "max-w-full text-xl font-semibold leading-snug @sm:text-2xl",
+  medio: "max-w-full text-2xl font-semibold leading-snug @sm:text-3xl",
+  grande: "max-w-full text-3xl font-semibold leading-tight @sm:text-5xl @md:text-6xl",
+  enorme: "max-w-full text-4xl font-semibold leading-none @sm:text-6xl @md:text-7xl",
 };
 
 const TEXTO = {
@@ -143,6 +143,7 @@ export function estiloLayout(props = {}) {
     estilo.boxSizing = "border-box";
   }
   if (usarFlex) {
+    estilo["--caixa-dir"] = props.flexDirecao || "row";
     estilo.flexDirection = props.flexDirecao || "row";
     estilo.flexWrap = props.flexQuebra || "wrap";
     estilo.justifyContent = props.justify || "center";
@@ -150,6 +151,7 @@ export function estiloLayout(props = {}) {
     estilo.gap = definido(props.gap) ? px(props.gap) : "16px";
   }
   if (props.display === "grid") {
+    estilo["--caixa-cols"] = `repeat(${props.colunasGrade || 2}, minmax(0, 1fr))`;
     estilo.gridTemplateColumns = `repeat(${props.colunasGrade || 2}, minmax(0, 1fr))`;
     estilo.justifyItems = eixoGrade(props.justify, "center");
     estilo.alignItems = eixoGrade(props.align, "center");

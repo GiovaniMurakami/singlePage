@@ -747,6 +747,12 @@ button, input, textarea, select {
 .preview-celular {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overflow-x: hidden;
+}
+
+.preview-celular .pagina-skin {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
 }
 
 .preview-celular::-webkit-scrollbar {
@@ -866,6 +872,8 @@ button, input, textarea, select {
 /* Partes de um bloco: passe o mouse para ver o nome, clique para editar só aquilo. */
 .parte-alvo {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   overflow: visible;
   border-radius: 0.75rem;
   cursor: pointer;
@@ -981,6 +989,20 @@ button, input, textarea, select {
 .ui-dica {
   color: var(--color-muted) !important;
   opacity: 1 !important;
+}
+
+.dica-desenho {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.dica-caixa {
+  display: block;
+  width: 100%;
+  max-width: 13.5rem;
+  height: auto;
+  margin-inline: auto;
 }
 
 [data-editor-chrome] {
@@ -1271,6 +1293,72 @@ button, input, textarea, select {
 .pagina-skin {
   position: relative;
   isolation: isolate;
+  container-type: inline-size;
+  container-name: pagina;
+}
+
+.pagina-skin h1,
+.pagina-skin h2,
+.pagina-skin h3,
+.pagina-skin p,
+.pagina-skin figcaption,
+.pagina-skin a,
+.pagina-skin li,
+.pagina-skin blockquote {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pagina-skin .item-interativo {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@container pagina (max-width: 39.99rem) {
+  [style*="--caixa-dir"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+  }
+
+  [style*="--caixa-dir"] > * {
+    flex: 1 1 auto !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+  }
+
+  [style*="--caixa-cols"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-titulo="caps"] :is(h1, h2) {
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Fileira custom: se o texto/foto não cabem, a peça desce sozinha. */
+.pagina-skin [style*="--caixa-dir:row"],
+.pagina-skin [style*="--caixa-dir: row"] {
+  flex-wrap: wrap !important;
+}
+
+.pagina-skin [style*="--caixa-dir:row"] > *,
+.pagina-skin [style*="--caixa-dir: row"] > * {
+  min-width: min(100%, 12rem);
+  max-width: 100%;
+  flex: 1 1 12rem;
+}
+
+.pagina-skin [style*="--caixa-cols"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)) !important;
+}
+
+@container pagina (min-width: 40rem) {
+  .pagina-skin [style*="--caixa-cols"] {
+    grid-template-columns: var(--caixa-cols) !important;
+  }
 }
 
 .pagina-skin::before {
@@ -1484,10 +1572,26 @@ button, input, textarea, select {
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 768px) {
+/* Cabe mais de uma coluna só se cada uma tiver espaço (~15rem). Senão empilha. */
+@container pagina (min-width: 28rem) {
+  .bloco-grade {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grade-min, 15rem)), 1fr));
+  }
+}
+
+@container pagina (min-width: 42rem) {
   .bloco-grade {
     grid-template-columns: var(--grade-template, 1fr 1fr);
   }
+}
+
+.layout-lado-fixo {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.layout-lado-texto {
+  max-width: 100%;
 }
 
 .anuncio-casa {
@@ -1719,6 +1823,49 @@ button, input, textarea, select {
   flex: 1;
   overflow: auto;
   padding: 0.85rem;
+}
+
+.editor-facetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background: #242424;
+}
+
+.editor-faceta {
+  flex: 1 1 auto;
+  min-width: 3.4rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 0.5rem;
+  color: #9b9b9b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.editor-faceta:hover {
+  color: #e8e8e8;
+}
+
+.editor-faceta[data-ativa="true"] {
+  background: #4a9fd4;
+  color: #102030;
+}
+
+.editor-guia-faceta {
+  margin: 0;
+  padding: 0 0.15rem;
+  color: #9b9b9b;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.editor-faceta-corpo {
+  min-width: 0;
 }
 
 .editor-painel-base {
