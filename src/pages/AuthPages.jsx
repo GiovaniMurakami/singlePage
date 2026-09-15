@@ -44,7 +44,7 @@ function AuthForm({ modo }) {
         path={modo === "cadastro" ? "/cadastrar" : "/entrar"}
         robots="noindex,nofollow"
       />
-      <form onSubmit={onSubmit} className="mx-auto mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mt-20 sm:p-8">
+      <form onSubmit={onSubmit} className="mx-4 mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mx-auto sm:mt-20 sm:p-8">
         <h1 className="font-display text-3xl md:text-4xl">{modo === "cadastro" ? "Crie sua conta" : "Entrar"}</h1>
         {modo === "cadastro" && (
           <input className="w-full rounded-2xl border border-line px-3 py-3 outline-none focus:border-accent" placeholder="Nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />

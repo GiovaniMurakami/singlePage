@@ -64,7 +64,8 @@ button, input, textarea, select {
 
 .lp-hero {
   position: relative;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .lp-hero-orb {
@@ -724,8 +725,8 @@ button, input, textarea, select {
 
 @media (max-width: 860px) {
   .hero-produto {
-    overflow: hidden;
-    padding-bottom: 3rem;
+    overflow: visible;
+    padding: 0 1.25rem 4.5rem;
   }
 
   .hero-produto-ajustes,
@@ -736,6 +737,9 @@ button, input, textarea, select {
   .hero-produto-janela {
     transform: none;
     animation: none;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 18px 40px rgba(0, 0, 0, 0.14);
   }
 
   .hero-produto-canvas {
