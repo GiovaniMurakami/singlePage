@@ -25,6 +25,10 @@ export const listarPlanos = () => httpClient.get("/assinatura/planos").then((r) 
 export const criarCheckout = (plano) => httpClient.post("/assinatura/checkout", { plano }).then((r) => r.data);
 export const criarPortal = () => httpClient.post("/assinatura/portal").then((r) => r.data);
 
+export const listarComunidade = () => httpClient.get("/comunidade").then((r) => r.data);
+export const alternarCurtidaComunidade = (paginaId) =>
+  httpClient.post(`/comunidade/${encodeURIComponent(paginaId)}/curtida`).then((r) => r.data);
+
 export async function uploadImagem(file) {
   const { uploadUrl, urlPublica } = await httpClient.post("/imagem/upload-url", {
     contentType: file.type || "image/jpeg",
