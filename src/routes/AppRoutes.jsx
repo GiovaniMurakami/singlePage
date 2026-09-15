@@ -12,6 +12,7 @@ import { PublicPage } from "../pages/PublicPage";
 import { RedirectPublica } from "../pages/RedirectPublica";
 import { GuestEditorPage } from "../pages/GuestEditorPage";
 import { AnalyticsPage } from "../pages/AnalyticsPage";
+import { ComunidadePage } from "../pages/ComunidadePage";
 import { slugDoHost } from "../constants/site";
 import { PrivacidadePage, TermosPage } from "../pages/LegalPages";
 
@@ -38,6 +39,7 @@ export function AppRoutes() {
       <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
       <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/precos" element={<PrecosPage />} />
+      <Route path="/comunidade" element={<ComunidadePage />} />
       <Route path="/termos" element={<TermosPage />} />
       <Route path="/privacidade" element={<PrivacidadePage />} />
       <Route path="/lgpd" element={<Navigate to="/privacidade" replace />} />
