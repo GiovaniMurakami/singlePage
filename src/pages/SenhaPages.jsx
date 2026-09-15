@@ -26,7 +26,7 @@ export function EsqueciSenhaPage() {
   return (
     <Shell>
       <Seo title="Esqueci a senha" path="/esqueci-senha" robots="noindex,nofollow" />
-      <form onSubmit={onSubmit} className="mx-auto mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mt-20 sm:p-8">
+      <form onSubmit={onSubmit} className="mx-4 mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mx-auto sm:mt-20 sm:p-8">
         <h1 className="font-display text-3xl md:text-4xl">Esqueci a senha</h1>
         <input className="w-full rounded-2xl border border-line px-3 py-3 outline-none focus:border-accent" type="email" required placeholder="Seu e-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
         <button disabled={enviando} className="w-full rounded-full bg-accent py-3 text-sm text-white disabled:opacity-60">{enviando ? "Enviando…" : "Enviar link"}</button>
@@ -60,7 +60,7 @@ export function RedefinirSenhaPage() {
   return (
     <Shell>
       <Seo title="Nova senha" path="/redefinir-senha" robots="noindex,nofollow" />
-      <form onSubmit={onSubmit} className="mx-auto mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mt-20 sm:p-8">
+      <form onSubmit={onSubmit} className="mx-4 mt-8 max-w-md space-y-4 rounded-[2rem] bg-paper-2 p-6 shadow-sm ring-1 ring-line sm:mx-auto sm:mt-20 sm:p-8">
         <h1 className="font-display text-3xl md:text-4xl">Nova senha</h1>
         {ok ? (
           <p className="text-sm">Senha atualizada. <Link to="/entrar" className="text-ink">Entrar</Link></p>
