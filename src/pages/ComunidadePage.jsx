@@ -3,6 +3,7 @@ import { Flame, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Shell } from "../components/ui/Shell";
 import { Seo } from "../components/Seo";
+import { MiniaturaPagina } from "../components/ui/MiniaturaPagina";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { alternarCurtidaComunidade, listarComunidade, mensagemErro } from "../services/backendApi";
@@ -94,27 +95,13 @@ export function ComunidadePage() {
               key={item.paginaId}
               className="group overflow-hidden rounded-3xl border border-line bg-paper-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <a href={urlPublicaPagina(item.slug)} target="_blank" rel="noreferrer" className="block">
-                <div
-                  className="relative aspect-[16/10] overflow-hidden"
-                  style={{ background: item.temaFundo || "#f6f1ea" }}
-                >
-                  {item.capaUrl ? (
-                    <img src={item.capaUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div
-                      className="absolute inset-0 opacity-80"
-                      style={{
-                        background: `linear-gradient(145deg, ${item.temaDestaque || "#c2410c"}55, transparent 60%)`,
-                      }}
-                    />
-                  )}
-                  {item.hot && (
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow">
-                      <Flame size={14} /> Hot
-                    </span>
-                  )}
-                </div>
+              <a href={urlPublicaPagina(item.slug)} target="_blank" rel="noreferrer" className="relative block">
+                <MiniaturaPagina item={item} />
+                {item.hot && (
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow">
+                    <Flame size={14} /> Hot
+                  </span>
+                )}
               </a>
 
               <div className="flex items-start justify-between gap-3 p-4">
