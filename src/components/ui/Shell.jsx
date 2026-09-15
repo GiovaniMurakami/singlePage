@@ -37,6 +37,7 @@ export function Shell({ children }) {
   const links = (
     <>
       <NavLink to="/criar" className={(props) => navClass(props, menuAberto)} onClick={fechar}>Editor</NavLink>
+      <NavLink to="/comunidade" className={(props) => navClass(props, menuAberto)} onClick={fechar}>Comunidade</NavLink>
       <NavLink to="/precos" className={(props) => navClass(props, menuAberto)} onClick={fechar}>Preços</NavLink>
       {autenticado ? (
         <>
